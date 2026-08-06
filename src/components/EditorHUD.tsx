@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { GameState, DRAGONS, LEVELS } from "../types";
 import {
   Flame,
@@ -17,10 +17,14 @@ import {
   Heart,
   HelpCircle,
   Compass,
+  Users,
+  Eye,
+  EyeOff,
+  X,
 } from "lucide-react";
 
 interface EditorHUDProps {
-  canvasRef: React.RefObject<HTMLCanvasElement | null>;
+  containerRef: React.RefObject<HTMLDivElement | null>;
   gameState: GameState;
   onSelectDragon: (dragonId: string) => void;
   onUpdateStats: (hue: number, speed: number, fireRate: number) => void;
@@ -30,8 +34,117 @@ interface EditorHUDProps {
   onSkipLevel: () => void;
 }
 
+const CHARACTERS_GALLERY = [
+  {
+    id: "dragon",
+    name: "Létající Drak (Hráč)",
+    role: "Hlavní hrdina",
+    biome: "Všechny biomy",
+    description: "Animovaný elementalní drak s mávajícími křídly, vlnícím se ocasem a schopností chrlit magické projektily. V editoru můžete měnit jeho barvu, rychlost a kadenci.",
+    badgeColor: "bg-amber-500/20 text-amber-400 border-amber-500/40",
+    renderSvg: (colorHex: string) => (
+      <svg viewBox="0 0 100 70" className="w-16 h-12">
+        <path d="M40 35 L20 10 L5 20 L25 35 Z" fill={colorHex} opacity="0.7" className="animate-pulse" />
+        <path d="M30 40 Q15 45 5 35 Q-5 40 0 50" stroke={colorHex} strokeWidth="4" fill="none" />
+        <polygon points="0,50 -8,45 -5,55" fill={colorHex} />
+        <ellipse cx="45" cy="40" rx="20" ry="12" fill={colorHex} />
+        <path d="M55 35 L70 20 L80 25 L75 35 L60 42 Z" fill={colorHex} />
+        <circle cx="73" cy="23" r="2.5" fill="#fff000" />
+        <polygon points="65,20 55,8 60,18" fill="#991b1b" />
+        <path d="M45 35 L30 5 L10 12 L32 32 Z" fill={colorHex} className="animate-bounce" />
+      </svg>
+    )
+  },
+  {
+    id: "naga",
+    name: "Hadovitá Naga",
+    role: "Létající plaz",
+    biome: "1. Biom: Kixskuske hory",
+    description: "Vlnící se plazivá stvůra složená ze 6 spojených článků s fialově zářícíma očima a hřbetními ostny. Útočí v roji.",
+    badgeColor: "bg-teal-500/20 text-teal-400 border-teal-500/40",
+    renderSvg: () => (
+      <svg viewBox="0 0 100 40" className="w-16 h-10">
+        <g className="animate-pulse">
+          <circle cx="20" cy="20" r="10" fill="#0f766e" />
+          <circle cx="23" cy="17" r="2" fill="#c084fc" />
+          <line x1="18" y1="12" x2="10" y2="5" stroke="#c084fc" strokeWidth="2" />
+          <circle cx="35" cy="22" r="8" fill="#14b8a6" />
+          <polygon points="35,14 31,8 29,14" fill="#f43f5e" />
+          <circle cx="48" cy="18" r="7" fill="#0d9488" />
+          <circle cx="60" cy="22" r="6" fill="#115e59" />
+          <circle cx="70" cy="19" r="5" fill="#134e4a" />
+          <circle cx="78" cy="20" r="3" fill="#042f2e" />
+        </g>
+      </svg>
+    )
+  },
+  {
+    id: "gargoyle",
+    name: "Dračí Monstrum",
+    role: "Střelec kyseliny",
+    biome: "1. Biom: Kixskuske hory",
+    description: "Netopýří ještěr chrlící zelené kyselinové projektily. Má animovaná netopýří křídla a ostnatou kouli na ocase.",
+    badgeColor: "bg-purple-500/20 text-purple-400 border-purple-500/40",
+    renderSvg: () => (
+      <svg viewBox="0 0 80 60" className="w-14 h-11">
+        <g>
+          <path d="M40 30 L65 10 L75 25 L55 30 Z" fill="#581c87" className="animate-pulse" />
+          <ellipse cx="40" cy="35" rx="15" ry="10" fill="#6b21a8" />
+          <path d="M30 30 L15 20 L10 32 L22 38 Z" fill="#6b21a8" />
+          <circle cx="18" cy="24" r="2" fill="#22c55e" />
+          <path d="M55 35 Q65 38 75 30" stroke="#6b21a8" strokeWidth="3" fill="none" />
+          <circle cx="75" cy="30" r="4" fill="#581c87" />
+        </g>
+      </svg>
+    )
+  },
+  {
+    id: "giant_worm",
+    name: "Obří Písečný Červ",
+    role: "Hlavní Boss",
+    biome: "2. Biom: Poušť Bojli",
+    description: "Monstrózní červ s 9 články, otevírající se tlamou s bílými tesáky a mnoha červenými očima. Vynořuje se svisle z dun.",
+    badgeColor: "bg-orange-500/20 text-orange-400 border-orange-500/40",
+    renderSvg: () => (
+      <svg viewBox="0 0 100 60" className="w-16 h-11">
+        <g>
+          <circle cx="30" cy="30" r="22" fill="#7c2d12" />
+          <circle cx="30" cy="30" r="14" fill="#111111" />
+          <line x1="30" y1="10" x2="30" y2="18" stroke="#ffffff" strokeWidth="2" />
+          <line x1="30" y1="42" x2="30" y2="50" stroke="#ffffff" strokeWidth="2" />
+          <line x1="10" y1="30" x2="18" y2="30" stroke="#ffffff" strokeWidth="2" />
+          <line x1="42" y1="30" x2="50" y2="30" stroke="#ffffff" strokeWidth="2" />
+          <circle cx="18" cy="18" r="2.5" fill="#ef4444" />
+          <circle cx="18" cy="42" r="2.5" fill="#ef4444" />
+          <circle cx="55" cy="30" r="18" fill="#ea580c" />
+          <circle cx="75" cy="30" r="14" fill="#c2410c" />
+        </g>
+      </svg>
+    )
+  },
+  {
+    id: "dwarf",
+    name: "Lesní Trpaslík",
+    role: "Pěšák s trny",
+    biome: "3. Biom: Masivní les",
+    description: "Trpaslík v červené kapuci stojící na kořenech stromů. Vystřeluje obloukové dřevěné trny směrem k drakovi.",
+    badgeColor: "bg-rose-500/20 text-rose-400 border-rose-500/40",
+    renderSvg: () => (
+      <svg viewBox="0 0 60 60" className="w-12 h-12">
+        <g>
+          <path d="M15 50 L20 25 L40 25 L45 50 Z" fill="#451a03" />
+          <path d="M20 25 Q30 5 40 25 Z" fill="#b91c1c" />
+          <ellipse cx="30" cy="23" rx="7" ry="5" fill="#1c1917" />
+          <circle cx="27" cy="23" r="1.5" fill="#eab308" />
+          <circle cx="33" cy="23" r="1.5" fill="#eab308" />
+        </g>
+      </svg>
+    )
+  }
+];
+
 export const EditorHUD: React.FC<EditorHUDProps> = ({
-  canvasRef,
+  containerRef,
   gameState,
   onSelectDragon,
   onUpdateStats,
@@ -40,6 +153,8 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
   onResetGame,
   onSkipLevel,
 }) => {
+  const [showCharactersModal, setShowCharactersModal] = useState(false);
+  const [hideMenuOverlay, setHideMenuOverlay] = useState(false);
   const currentLevelConfig = LEVELS[gameState.currentLevel - 1];
 
   const handleHueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -67,17 +182,24 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
             className={`relative flex flex-col justify-between p-4 rounded-xl border text-left transition-all duration-300 overflow-hidden group ${
               isSelected
                 ? "bg-slate-900/90 border-amber-500 shadow-lg shadow-amber-500/20 scale-102"
-                : "bg-slate-950/60 border-slate-800 hover:border-slate-700 hover:bg-slate-900/50"
+                : "bg-slate-950/70 border-slate-800 hover:border-slate-700 hover:bg-slate-900/60"
             }`}
           >
-            {/* Hue-colored indicator circle */}
-            <div className="absolute top-0 right-0 w-24 h-24 -mr-10 -mt-10 rounded-full opacity-10 group-hover:opacity-20 transition-opacity"
-                 style={{ backgroundColor: drag.colorHex }} />
+            {/* Visual Dragon SVG Preview Badge */}
+            <div className="absolute top-2 right-2 opacity-80 group-hover:scale-110 transition-transform">
+              <svg viewBox="0 0 100 70" className="w-10 h-8">
+                <path d="M40 35 L20 10 L5 20 L25 35 Z" fill={drag.colorHex} opacity="0.6" />
+                <ellipse cx="45" cy="40" rx="18" ry="10" fill={drag.colorHex} />
+                <path d="M55 35 L70 20 L80 25 L75 35 Z" fill={drag.colorHex} />
+                <circle cx="73" cy="23" r="2" fill="#fff" />
+                <path d="M45 35 L30 5 L10 12 L32 32 Z" fill={drag.colorHex} />
+              </svg>
+            </div>
 
             <div>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="w-3.5 h-3.5 rounded-full border border-white/20" style={{ backgroundColor: drag.colorHex }} />
-                <h3 className="font-semibold text-white group-hover:text-amber-400 transition-colors">{drag.name}</h3>
+              <div className="flex items-center gap-2 mb-2 pr-10">
+                <span className="w-3.5 h-3.5 rounded-full border border-white/20 shrink-0" style={{ backgroundColor: drag.colorHex }} />
+                <h3 className="font-semibold text-white group-hover:text-amber-400 transition-colors text-sm">{drag.name}</h3>
               </div>
               <p className="text-xs text-slate-400 mb-3 leading-relaxed">Element: {drag.element}</p>
             </div>
@@ -98,7 +220,7 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
             </div>
 
             {isSelected && (
-              <div className="absolute top-2 right-2 bg-amber-500 text-slate-950 font-bold text-[9px] px-1.5 py-0.5 rounded uppercase tracking-wider">
+              <div className="mt-2 bg-amber-500 text-slate-950 font-bold text-[9px] px-1.5 py-0.5 rounded uppercase tracking-wider text-center w-full">
                 Vybráno
               </div>
             )}
@@ -247,50 +369,169 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
 
           {/* Menu / Selection Screen */}
           {gameState.status === "menu" && (
-            <div id="overlay-menu" className="absolute inset-0 z-40 bg-slate-950 flex flex-col justify-between p-6 overflow-y-auto">
-              <div>
-                <div className="max-w-2xl">
-                  <span className="text-xs font-bold uppercase tracking-widest text-amber-500 bg-amber-500/10 px-2.5 py-1 rounded-full">
-                    Vyberte si svého draka ochránce
-                  </span>
-                  <h2 className="text-3xl font-extrabold text-white tracking-tight uppercase mt-3 mb-1">
-                    Zvolte si svůj element
-                  </h2>
-                  <p className="text-slate-400 text-sm leading-relaxed mb-6">
-                    Každý drak ovládá jedinečný elementární projektil. Vyberte si draka níže, upravte jeho vlastnosti v editoru a proleťte bouřlivými vrcholky, písečnými bouřemi a temnými bludišti.
-                  </p>
+            <>
+              {hideMenuOverlay ? (
+                <div className="absolute top-4 left-4 z-40">
+                  <button
+                    onClick={() => setHideMenuOverlay(false)}
+                    className="px-4 py-2 rounded-xl bg-slate-900/90 border border-slate-700 text-amber-400 font-bold text-xs hover:bg-slate-800 transition flex items-center gap-2 shadow-xl backdrop-blur-md"
+                  >
+                    <Eye className="w-4 h-4" /> Zobrazit nabídku a výběr draků
+                  </button>
                 </div>
+              ) : (
+                <div id="overlay-menu" className="absolute inset-0 z-40 bg-slate-950/80 backdrop-blur-md flex flex-col justify-between p-6 overflow-y-auto">
+                  <div>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                      <div>
+                        <span className="text-xs font-bold uppercase tracking-widest text-amber-500 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">
+                          Vyberte si svého draka ochránce
+                        </span>
+                        <h2 className="text-3xl font-extrabold text-white tracking-tight uppercase mt-2 mb-1">
+                          Zvolte si svůj element
+                        </h2>
+                        <p className="text-slate-400 text-xs md:text-sm leading-relaxed max-w-xl">
+                          Animovaný drak létá přímo na pozadí! Vyberte si element, prohlédněte si postavičky a spusťte hru.
+                        </p>
+                      </div>
 
-                {renderDragonSelector()}
-              </div>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          onClick={() => setShowCharactersModal(true)}
+                          className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 text-xs font-bold transition flex items-center gap-2 shadow-md"
+                        >
+                          <Users className="w-4 h-4 text-amber-400" /> Galerie postaviček
+                        </button>
+                        <button
+                          onClick={() => setHideMenuOverlay(true)}
+                          className="px-4 py-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 text-xs font-medium transition flex items-center gap-2"
+                          title="Skrýt menu a sledovat animovaného draka na pozadí"
+                        >
+                          <EyeOff className="w-4 h-4" /> Živý náhled
+                        </button>
+                      </div>
+                    </div>
 
-              <div className="border-t border-slate-900 pt-6 flex flex-col md:flex-row items-center justify-between gap-4 mt-auto">
-                <div className="flex items-center gap-4 text-xs text-slate-400">
-                  <div className="flex items-center gap-1.5">
-                    <kbd className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 font-mono text-[10px]">WASD</kbd> / <kbd className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 font-mono text-[10px]">ŠIPKY</kbd> Let
+                    {renderDragonSelector()}
+
+                    {/* Quick Characters Preview Bar */}
+                    <div className="bg-slate-900/50 border border-slate-800/80 rounded-xl p-4 mb-6">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                          <Users className="w-4 h-4" /> Animované postavičky a monstra ve hře
+                        </h4>
+                        <button
+                          onClick={() => setShowCharactersModal(true)}
+                          className="text-[11px] text-slate-400 hover:text-amber-400 underline font-medium"
+                        >
+                          Zobrazit detailní galerii &rarr;
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                        {CHARACTERS_GALLERY.map((char) => (
+                          <div
+                            key={char.id}
+                            onClick={() => setShowCharactersModal(true)}
+                            className="bg-slate-950/60 border border-slate-800/80 hover:border-slate-700 rounded-lg p-2.5 flex flex-col items-center text-center cursor-pointer transition-all hover:scale-105"
+                          >
+                            <div className="mb-1">
+                              {char.id === "dragon"
+                                ? char.renderSvg(gameState.dragonConfig.colorHex)
+                                : char.renderSvg(gameState.dragonConfig.colorHex)}
+                            </div>
+                            <div className="text-[11px] font-bold text-slate-200 leading-tight">{char.name}</div>
+                            <div className="text-[9px] text-slate-400 mt-0.5">{char.role}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <kbd className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 font-mono text-[10px]">MEZERNÍK</kbd> Střelba
+
+                  <div className="border-t border-slate-900/90 pt-4 flex flex-col md:flex-row items-center justify-between gap-4 mt-auto">
+                    <div className="flex items-center gap-4 text-xs text-slate-400">
+                      <div className="flex items-center gap-1.5">
+                        <kbd className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 font-mono text-[10px]">WASD</kbd> / <kbd className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 font-mono text-[10px]">ŠIPKY</kbd> Let
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <kbd className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 font-mono text-[10px]">MEZERNÍK</kbd> Střelba
+                      </div>
+                    </div>
+
+                    <button
+                      id="btn-start-game"
+                      onClick={() => onStartLevel(1)}
+                      className="w-full md:w-auto px-10 py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-rose-500 text-slate-950 font-black hover:brightness-110 transition flex items-center justify-center gap-2 text-sm shadow-lg shadow-amber-500/25 uppercase tracking-wider"
+                    >
+                      <Play className="w-4 h-4" /> Zahájit dračí pouť
+                    </button>
                   </div>
                 </div>
+              )}
+            </>
+          )}
 
+          {/* Character Gallery Modal */}
+          {showCharactersModal && (
+            <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-3xl w-full shadow-2xl relative my-8">
                 <button
-                  id="btn-start-game"
-                  onClick={() => onStartLevel(1)}
-                  className="w-full md:w-auto px-10 py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-rose-500 text-slate-950 font-black hover:brightness-110 transition flex items-center justify-center gap-2 text-sm shadow-lg shadow-amber-500/25 uppercase tracking-wider"
+                  onClick={() => setShowCharactersModal(false)}
+                  className="absolute top-4 right-4 p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition"
                 >
-                  <Play className="w-4 h-4" /> Zahájit dračí pouť
+                  <X className="w-5 h-5" />
                 </button>
+
+                <div className="flex items-center gap-2 mb-1">
+                  <Users className="w-6 h-6 text-amber-400" />
+                  <h2 className="text-2xl font-black text-white uppercase tracking-tight">Galerie animovaných postaviček</h2>
+                </div>
+                <p className="text-slate-400 text-xs mb-6">
+                  Přehled všech 2D animovaných postav a monster, které potkáte během své pouti napříč biomy.
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto pr-2">
+                  {CHARACTERS_GALLERY.map((char) => (
+                    <div
+                      key={char.id}
+                      className="bg-slate-950/80 border border-slate-800/80 rounded-xl p-4 flex gap-4 items-start hover:border-slate-700 transition"
+                    >
+                      <div className="p-2 rounded-lg bg-slate-900 border border-slate-800 shrink-0 flex items-center justify-center min-w-[70px] min-h-[70px]">
+                        {char.id === "dragon"
+                          ? char.renderSvg(gameState.dragonConfig.colorHex)
+                          : char.renderSvg(gameState.dragonConfig.colorHex)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <h3 className="font-bold text-white text-sm">{char.name}</h3>
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${char.badgeColor}`}>
+                            {char.role}
+                          </span>
+                        </div>
+                        <div className="text-[10px] text-amber-400/90 font-medium mb-1.5">{char.biome}</div>
+                        <p className="text-xs text-slate-400 leading-relaxed">{char.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-slate-800 flex justify-end">
+                  <button
+                    onClick={() => setShowCharactersModal(false)}
+                    className="px-6 py-2.5 rounded-xl bg-amber-500 text-slate-950 font-bold hover:bg-amber-400 transition text-xs"
+                  >
+                    Zpět do výběru
+                  </button>
+                </div>
               </div>
             </div>
           )}
 
           {/* Active Canvas Holder with Real-time Game Status overlays */}
           <div className="relative flex-1 bg-slate-950 flex items-center justify-center overflow-hidden">
-            <canvas
-              ref={canvasRef}
-              id="game-pixi-canvas"
-              className="w-full h-full max-w-4xl aspect-[16/9] shadow-2xl block bg-[#0a0a14]"
+            <div
+              ref={containerRef}
+              id="game-canvas-holder"
+              className="w-full h-full max-w-4xl aspect-[16/9] shadow-2xl block bg-[#0a0a14] flex items-center justify-center overflow-hidden"
             />
 
             {/* In-Game HUD overlay */}

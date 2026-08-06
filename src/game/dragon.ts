@@ -32,9 +32,13 @@ export class PlayerDragon {
   constructor() {
     this.container = new Container();
     
-    // Create and apply ColorMatrixFilter for hue shifts
-    this.colorFilter = new ColorMatrixFilter();
-    this.container.filters = [this.colorFilter];
+    // Create and apply ColorMatrixFilter for hue shifts safely
+    try {
+      this.colorFilter = new ColorMatrixFilter();
+      this.container.filters = [this.colorFilter];
+    } catch (e) {
+      console.warn("ColorMatrixFilter initialization skipped:", e);
+    }
 
     // Build the procedural dragon parts
     this.backWing = new Graphics();

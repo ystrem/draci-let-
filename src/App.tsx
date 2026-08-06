@@ -4,7 +4,7 @@ import { EditorHUD } from "./components/EditorHUD";
 import { GameState, DRAGONS } from "./types";
 
 export default function App() {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const engineRef = useRef<GameEngine | null>(null);
 
   const [gameState, setGameState] = useState<GameState>({
@@ -27,10 +27,22 @@ export default function App() {
   });
 
   useEffect(() => {
+    // Suppress transient WebGL context loss errors in sandbox preview
+    const handleContextError = (e: ErrorEvent | PromiseRejectionEvent) => {
+      const msg = 'reason' in e ? e.reason?.message : e.message;
+      if (typeof msg === "string" && (msg.includes("WebGL") || msg.includes("shader") || msg.includes("context may be lost"))) {
+        if ('preventDefault' in e && typeof e.preventDefault === 'function') {
+          e.preventDefault();
+        }
+      }
+    };
+    window.addEventListener("error", handleContextError);
+    window.addEventListener("unhandledrejection", handleContextError);
+
     // Only initialize once on mount
-    if (canvasRef.current && !engineRef.current) {
+    if (containerRef.current && !engineRef.current) {
       const engine = new GameEngine(
-        canvasRef.current,
+        containerRef.current,
         DRAGONS[0],
         (newState) => {
           setGameState(newState);
@@ -41,6 +53,8 @@ export default function App() {
     }
 
     return () => {
+      window.removeEventListener("error", handleContextError);
+      window.removeEventListener("unhandledrejection", handleContextError);
       if (engineRef.current) {
         engineRef.current.destroy();
         engineRef.current = null;
@@ -88,7 +102,7 @@ export default function App() {
   return (
     <div id="app-root-container" className="w-screen h-screen overflow-hidden bg-slate-950">
       <EditorHUD
-        canvasRef={canvasRef}
+        containerRef={containerRef}
         gameState={gameState}
         onSelectDragon={handleSelectDragon}
         onUpdateStats={handleUpdateStats}

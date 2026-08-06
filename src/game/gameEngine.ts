@@ -8,7 +8,7 @@ import { GameState, DragonConfig, DRAGONS, LEVELS } from "../types";
 
 export class GameEngine {
   private app!: Application;
-  private canvas: HTMLCanvasElement;
+  private containerElement: HTMLDivElement;
   private onStateChange: (state: GameState) => void;
 
   // Game layers
@@ -27,6 +27,7 @@ export class GameEngine {
   private isInitialized: boolean = false;
   private isDestroyed: boolean = false;
   private isRunning: boolean = false;
+  private initPromise: Promise<void> | null = null;
   private keys: Record<string, boolean> = {};
   
   // Current dynamic settings
@@ -49,11 +50,11 @@ export class GameEngine {
   private shakeIntensity: number = 0;
 
   constructor(
-    canvas: HTMLCanvasElement,
+    containerElement: HTMLDivElement,
     initialConfig: DragonConfig,
     onStateChange: (state: GameState) => void
   ) {
-    this.canvas = canvas;
+    this.containerElement = containerElement;
     this.onStateChange = onStateChange;
     this.currentConfig = initialConfig;
     this.manualHue = initialConfig.baseHue;
@@ -82,53 +83,82 @@ export class GameEngine {
   }
 
   // Asynchronous game bootstrap matching Pixi v8 standards
-  public async init() {
+  public async init(): Promise<void> {
     if (this.isInitialized || this.isDestroyed) return;
+    if (this.initPromise) return this.initPromise;
 
-    this.app = new Application();
-    
-    // Modern Pixi v8 Application init
-    await this.app.init({
-      canvas: this.canvas,
-      width: 800,
-      height: 450,
-      antialias: true,
-      background: "#0a0a14",
-    });
-
-    if (this.isDestroyed) {
+    this.initPromise = (async () => {
+      this.app = new Application();
+      
       try {
-        this.app.destroy(true, { children: true, texture: true });
-      } catch (e) {
-        // ignore
+        // Modern Pixi v8 Application init
+        await this.app.init({
+          width: 800,
+          height: 450,
+          antialias: true,
+          background: "#0a0a14",
+          preference: "webgl",
+        });
+      } catch (err) {
+        console.warn("Primary WebGL init warning, retrying basic initialization:", err);
+        try {
+          await this.app.init({
+            width: 800,
+            height: 450,
+            background: "#0a0a14",
+          });
+        } catch (fallbackErr) {
+          console.error("PixiJS initialization fallback failed:", fallbackErr);
+          return;
+        }
       }
-      return;
-    }
 
-    // Outer stage for screen shaking
-    this.gameStage = new Container();
-    this.app.stage.addChild(this.gameStage);
+      if (this.isDestroyed) {
+        try {
+          this.app.destroy(true, { children: true });
+        } catch (e) {
+          // ignore
+        }
+        return;
+      }
 
-    // 1. Setup parallax background
-    this.bgManager = new ParallaxBackground(this.gameStage, 800, 450);
+      // Append Pixi's fresh canvas element into the container div
+      const canvas = this.app.canvas as HTMLCanvasElement;
+      if (canvas && this.containerElement) {
+        canvas.id = "game-pixi-canvas";
+        canvas.className = "w-full h-full max-w-4xl aspect-[16/9] shadow-2xl block bg-[#0a0a14]";
+        canvas.style.display = "block";
+        this.containerElement.innerHTML = "";
+        this.containerElement.appendChild(canvas);
+      }
 
-    // 2. Setup particle system
-    this.particles = new ParticleSystem(this.gameStage);
+      // Outer stage for screen shaking
+      this.gameStage = new Container();
+      this.app.stage.addChild(this.gameStage);
 
-    // 3. Setup player dragon
-    this.playerDragon = new PlayerDragon();
-    this.playerDragon.applyConfig(this.currentConfig, this.manualHue, this.manualSpeed, this.manualFireRate);
-    this.gameStage.addChild(this.playerDragon.container);
+      // 1. Setup parallax background
+      this.bgManager = new ParallaxBackground(this.gameStage, 800, 450);
 
-    // Bind event listeners
-    window.addEventListener("keydown", this.handleKeyDown);
-    window.addEventListener("keyup", this.handleKeyUp);
+      // 2. Setup particle system
+      this.particles = new ParticleSystem(this.gameStage);
 
-    // Start ticker
-    this.app.ticker?.add(this.update);
+      // 3. Setup player dragon
+      this.playerDragon = new PlayerDragon();
+      this.playerDragon.applyConfig(this.currentConfig, this.manualHue, this.manualSpeed, this.manualFireRate);
+      this.gameStage.addChild(this.playerDragon.container);
 
-    this.isInitialized = true;
-    this.triggerStateChange();
+      // Bind event listeners
+      window.addEventListener("keydown", this.handleKeyDown);
+      window.addEventListener("keyup", this.handleKeyUp);
+
+      // Start ticker
+      this.app.ticker?.add(this.update);
+
+      this.isInitialized = true;
+      this.triggerStateChange();
+    })();
+
+    return this.initPromise;
   }
 
   // Begin actual level gameplay
@@ -270,7 +300,32 @@ export class GameEngine {
 
   // --- MAIN UPDATE GAME LOOP TICKER ---
   private update = (ticker: any) => {
-    if (!this.isRunning || this.state.isPaused) return;
+    if (this.isDestroyed || !this.app || !this.app.renderer || !this.app.stage) return;
+    if (this.state.isPaused) return;
+
+    try {
+      // Menu preview loop: update background and let player dragon float & flap wings
+      if (this.state.status === "menu") {
+        if (this.bgManager) this.bgManager.update(ticker);
+        if (this.playerDragon) {
+          this.playerDragon.x = 220;
+          this.playerDragon.y = 225 + Math.sin(Date.now() * 0.003) * 16;
+          this.playerDragon.updatePosition();
+          this.playerDragon.update(ticker);
+          if (this.particles) {
+            this.particles.emitDragonTrail(this.playerDragon.x, this.playerDragon.y, this.playerDragon.projectileColor);
+            this.particles.emitStormEmbers(800, 450);
+          }
+        }
+        return;
+      }
+    } catch (e) {
+      console.warn("Transient ticker update error ignored:", e);
+      return;
+    }
+
+    try {
+      if (!this.isRunning) return;
 
     const dt = ticker.deltaTime || 1;
     const now = Date.now();
@@ -352,6 +407,9 @@ export class GameEngine {
 
     // 8. Track level progression / victory transitions
     this.trackProgression(dt);
+    } catch (e) {
+      console.warn("Transient ticker update error ignored:", e);
+    }
   };
 
   // --- SPAWNING LOGIC ---
@@ -736,15 +794,32 @@ export class GameEngine {
   }
 
   // Clean up and release webgl/canvas listeners completely
-  public destroy() {
+  public async destroy() {
     this.isDestroyed = true;
     this.isRunning = false;
     window.removeEventListener("keydown", this.handleKeyDown);
     window.removeEventListener("keyup", this.handleKeyUp);
     
+    if (this.initPromise) {
+      try {
+        await this.initPromise;
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    if (this.containerElement) {
+      this.containerElement.innerHTML = "";
+    }
+
     if (this.app) {
       if (this.app.ticker) {
-        this.app.ticker.remove(this.update);
+        try {
+          this.app.ticker.remove(this.update);
+          this.app.ticker.stop();
+        } catch (e) {
+          // ignore
+        }
       }
       this.clearLists();
       
@@ -753,7 +828,7 @@ export class GameEngine {
       if (this.particles) this.particles.destroy();
       
       try {
-        this.app.destroy(true, { children: true, texture: true });
+        this.app.destroy(true, { children: true });
       } catch (e) {
         // ignore if already destroyed
       }
