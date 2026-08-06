@@ -1,0 +1,6 @@
+{
+  "name": "Dragon Action-Adventure Game",
+  "description": "A 2D side-scrolling action-adventure game featuring selectable dragons, dynamic custom colors, and three unique fantasy levels.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
