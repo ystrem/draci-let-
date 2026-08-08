@@ -126,18 +126,21 @@ export class ParallaxBackground {
 
   // --- LEVEL 1 STORM GRAPHICS ---
   private drawStormySky() {
-    // Fill background with rich stormy dark indigo navy
-    this.skyLayer.rect(0, 0, this.width, this.height).fill({ color: 0x0f172a });
-    
+    // Fill background with rich stormy twilight indigo
+    this.skyLayer.rect(0, 0, this.width, this.height).fill({ color: 0x1e1b4b });
+    // Horizon glow
+    this.skyLayer.rect(0, 180, this.width, this.height - 180).fill({ color: 0x1e293b, alpha: 0.8 });
+    this.skyLayer.ellipse(400, 280, 500, 150).fill({ color: 0x3b82f6, alpha: 0.15 });
+
     // Radiant moon on the mountain horizon
-    this.skyLayer.circle(650, 90, 40).fill({ color: 0xf8fafc, alpha: 0.95 });
-    this.skyLayer.circle(650, 90, 56).fill({ color: 0x60a5fa, alpha: 0.25 });
-    this.skyLayer.circle(650, 90, 75).fill({ color: 0x3b82f6, alpha: 0.1 });
+    this.skyLayer.circle(650, 90, 42).fill({ color: 0xffffff, alpha: 0.98 });
+    this.skyLayer.circle(650, 90, 60).fill({ color: 0x60a5fa, alpha: 0.35 });
+    this.skyLayer.circle(650, 90, 85).fill({ color: 0x3b82f6, alpha: 0.15 });
 
     // Layered stormy clouds with atmospheric glow
-    this.skyLayer.ellipse(150, 50, 180, 55).fill({ color: 0x1e293b, alpha: 0.85 });
-    this.skyLayer.ellipse(420, 75, 240, 65).fill({ color: 0x334155, alpha: 0.75 });
-    this.skyLayer.ellipse(720, 45, 170, 50).fill({ color: 0x1e1b4b, alpha: 0.9 });
+    this.skyLayer.ellipse(150, 50, 190, 60).fill({ color: 0x334155, alpha: 0.85 });
+    this.skyLayer.ellipse(420, 75, 250, 70).fill({ color: 0x475569, alpha: 0.75 });
+    this.skyLayer.ellipse(720, 45, 180, 55).fill({ color: 0x312e81, alpha: 0.9 });
   }
 
   private drawRockyPeaks(g: Graphics, baseHeight: number, topColor: number, bottomColor: number, hasSnow: boolean = false) {

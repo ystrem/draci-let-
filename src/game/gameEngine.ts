@@ -129,8 +129,13 @@ export class GameEngine {
       const canvas = this.app.canvas as HTMLCanvasElement;
       if (canvas && this.containerElement) {
         canvas.id = "game-pixi-canvas";
-        canvas.className = "w-full h-full max-w-4xl aspect-[16/9] shadow-2xl block bg-[#0a0a14]";
+        canvas.className = "w-full h-full block bg-[#0f172a] rounded-xl shadow-2xl";
         canvas.style.display = "block";
+        canvas.style.width = "100%";
+        canvas.style.height = "100%";
+        canvas.style.maxWidth = "100%";
+        canvas.style.maxHeight = "100%";
+        canvas.style.objectFit = "contain";
         this.containerElement.innerHTML = "";
         this.containerElement.appendChild(canvas);
       }
@@ -153,13 +158,23 @@ export class GameEngine {
       window.addEventListener("keyup", this.handleKeyUp);
 
       // Start ticker
-      this.app.ticker?.add(this.update);
+      if (this.app.ticker) {
+        this.app.ticker.add(this.update);
+        this.app.ticker.start();
+      }
 
       this.isInitialized = true;
+      this.isRunning = true;
+      this.startLevel(1);
       this.triggerStateChange();
     })();
 
     return this.initPromise;
+  }
+
+  public openMenu() {
+    this.state.status = "menu";
+    this.triggerStateChange();
   }
 
   // Setup player dragons for 1 to 4 active players
@@ -232,10 +247,17 @@ export class GameEngine {
     this.clearLists();
 
     // Configure background for current biome
-    this.bgManager.setBiome(levelId);
+    if (this.bgManager) {
+      this.bgManager.setBiome(levelId);
+    }
 
     this.isRunning = true;
     this.state.isPaused = false;
+    
+    if (this.app?.ticker) {
+      this.app.ticker.start();
+    }
+
     this.triggerStateChange();
   }
 

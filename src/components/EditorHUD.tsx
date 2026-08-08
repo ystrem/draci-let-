@@ -37,6 +37,7 @@ interface EditorHUDProps {
   onResetGame: () => void;
   onSkipLevel: () => void;
   onSetPlayerCount?: (count: number) => void;
+  onOpenMenu?: () => void;
 }
 
 const CHARACTERS_GALLERY = [
@@ -471,6 +472,7 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
   onResetGame,
   onSkipLevel,
   onSetPlayerCount,
+  onOpenMenu,
 }) => {
   const [showCharactersModal, setShowCharactersModal] = useState(false);
   const [hideMenuOverlay, setHideMenuOverlay] = useState(false);
@@ -567,21 +569,34 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
         {/* Global Toolbar */}
         <div className="flex items-center gap-3">
           {gameState.status === "playing" && (
-            <button
-              id="btn-pause"
-              onClick={onTogglePause}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs transition font-medium"
-            >
-              {gameState.isPaused ? (
-                <>
-                  <Play className="w-3.5 h-3.5 text-emerald-400" /> Pokračovat
-                </>
-              ) : (
-                <>
-                  <Pause className="w-3.5 h-3.5 text-amber-400" /> Pauza
-                </>
+            <>
+              <button
+                id="btn-pause"
+                onClick={onTogglePause}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs transition font-medium"
+              >
+                {gameState.isPaused ? (
+                  <>
+                    <Play className="w-3.5 h-3.5 text-emerald-400" /> Pokračovat
+                  </>
+                ) : (
+                  <>
+                    <Pause className="w-3.5 h-3.5 text-amber-400" /> Pauza
+                  </>
+                )}
+              </button>
+
+              {onOpenMenu && (
+                <button
+                  id="btn-open-menu"
+                  onClick={onOpenMenu}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 font-bold text-xs transition"
+                  title="Otevřít nabídku výběru hráčů a editor"
+                >
+                  <Sliders className="w-3.5 h-3.5" /> Nastavení / Menu
+                </button>
               )}
-            </button>
+            </>
           )}
 
           <button
@@ -699,12 +714,21 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
           {gameState.status === "menu" && (
             <>
               {hideMenuOverlay ? (
-                <div className="absolute top-4 left-4 z-40">
+                <div className="absolute top-4 left-4 z-40 flex items-center gap-2">
                   <button
                     onClick={() => setHideMenuOverlay(false)}
-                    className="px-4 py-2 rounded-xl bg-slate-900/90 border border-slate-700 text-amber-400 font-bold text-xs hover:bg-slate-800 transition flex items-center gap-2 shadow-xl backdrop-blur-md"
+                    className="px-4 py-2 rounded-xl bg-slate-900/95 border border-slate-700 text-amber-400 font-bold text-xs hover:bg-slate-800 transition flex items-center gap-2 shadow-2xl backdrop-blur-md"
                   >
                     <Eye className="w-4 h-4" /> Zobrazit nabídku a nastavení hráčů
+                  </button>
+                  <button
+                    onClick={() => {
+                      setHideMenuOverlay(false);
+                      onStartLevel(1);
+                    }}
+                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-rose-500 text-slate-950 font-black text-xs hover:brightness-110 transition flex items-center gap-1.5 shadow-2xl uppercase tracking-wider"
+                  >
+                    <Play className="w-4 h-4 fill-current" /> Spustit hru přímo
                   </button>
                 </div>
               ) : (
@@ -732,10 +756,10 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
                         </button>
                         <button
                           onClick={() => setHideMenuOverlay(true)}
-                          className="px-4 py-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 text-xs font-medium transition flex items-center gap-2"
-                          title="Skrýt menu a sledovat animované draky na pozadí"
+                          className="px-4 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold transition flex items-center gap-2 shadow-md"
+                          title="Skrýt menu a sledovat draka a celou hru na pozadí"
                         >
-                          <EyeOff className="w-4 h-4" /> Živý náhled
+                          <EyeOff className="w-4 h-4 text-amber-400" /> Skrýt menu (Živý náhled)
                         </button>
                       </div>
                     </div>
@@ -851,11 +875,11 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
           )}
 
           {/* Active Canvas Holder with Real-time Game Status overlays */}
-          <div className="relative flex-1 bg-slate-950 flex items-center justify-center overflow-hidden">
+          <div className="relative flex-1 bg-slate-950 flex items-center justify-center overflow-hidden p-2 min-h-0">
             <div
               ref={containerRef}
               id="game-canvas-holder"
-              className="w-full h-full max-w-4xl aspect-[16/9] shadow-2xl block bg-[#0a0a14] flex items-center justify-center overflow-hidden"
+              className="w-full max-w-5xl aspect-[16/9] shadow-2xl bg-[#0f172a] flex items-center justify-center overflow-hidden rounded-xl border border-slate-800/80 my-auto"
             />
 
             {/* In-Game HUD overlay */}

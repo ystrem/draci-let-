@@ -8,7 +8,7 @@ export default function App() {
   const engineRef = useRef<GameEngine | null>(null);
 
   const [gameState, setGameState] = useState<GameState>({
-    status: "menu",
+    status: "playing",
     currentLevel: 1,
     score: 0,
     enemiesDefeated: 0,
@@ -105,6 +105,12 @@ export default function App() {
     }
   };
 
+  const handleOpenMenu = () => {
+    if (engineRef.current) {
+      engineRef.current.openMenu();
+    }
+  };
+
   return (
     <div id="app-root-container" className="w-screen h-screen overflow-hidden bg-slate-950">
       <EditorHUD
@@ -117,6 +123,7 @@ export default function App() {
         onResetGame={handleResetGame}
         onSkipLevel={handleSkipLevel}
         onSetPlayerCount={handleSetPlayerCount}
+        onOpenMenu={handleOpenMenu}
       />
     </div>
   );
