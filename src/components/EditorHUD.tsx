@@ -761,7 +761,7 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                   {/* Health Upgrade */}
                   {(() => {
-                    const hpCost = 200 + (gameState.healthUpgradeLevel * 100);
+                    const hpCost = 450 + (gameState.healthUpgradeLevel * 250);
                     const canAfford = gameState.score >= hpCost;
                     return (
                       <div className="bg-slate-900/90 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-4 transition flex flex-col justify-between gap-3 shadow-lg">
@@ -803,7 +803,7 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
 
                   {/* Fire Rate Upgrade */}
                   {(() => {
-                    const frCost = 250 + (gameState.fireRateUpgradeLevel * 120);
+                    const frCost = 500 + (gameState.fireRateUpgradeLevel * 300);
                     const canAfford = gameState.score >= frCost;
                     return (
                       <div className="bg-slate-900/90 border border-slate-800 hover:border-rose-500/50 rounded-2xl p-4 transition flex flex-col justify-between gap-3 shadow-lg">
@@ -845,7 +845,7 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
 
                   {/* Damage Upgrade */}
                   {(() => {
-                    const dmgCost = 300 + (gameState.damageUpgradeLevel * 150);
+                    const dmgCost = 600 + (gameState.damageUpgradeLevel * 350);
                     const canAfford = gameState.score >= dmgCost;
                     return (
                       <div className="bg-slate-900/90 border border-slate-800 hover:border-amber-500/50 rounded-2xl p-4 transition flex flex-col justify-between gap-3 shadow-lg">
@@ -887,7 +887,7 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
 
                   {/* Speed Upgrade */}
                   {(() => {
-                    const spdCost = 200 + (gameState.speedUpgradeLevel * 100);
+                    const spdCost = 400 + (gameState.speedUpgradeLevel * 200);
                     const canAfford = gameState.score >= spdCost;
                     return (
                       <div className="bg-slate-900/90 border border-slate-800 hover:border-sky-500/50 rounded-2xl p-4 transition flex flex-col justify-between gap-3 shadow-lg">

@@ -294,7 +294,7 @@ export class GameEngine {
 
   // --- CAVE SANCTUARY UPGRADES ---
   public upgradeHealth(): boolean {
-    const cost = 200 + (this.state.healthUpgradeLevel * 100);
+    const cost = 450 + (this.state.healthUpgradeLevel * 250);
     if (this.state.score >= cost) {
       this.state.score -= cost;
       this.state.healthUpgradeLevel += 1;
@@ -312,7 +312,7 @@ export class GameEngine {
   }
 
   public upgradeFireRate(): boolean {
-    const cost = 250 + (this.state.fireRateUpgradeLevel * 120);
+    const cost = 500 + (this.state.fireRateUpgradeLevel * 300);
     if (this.state.score >= cost) {
       this.state.score -= cost;
       this.state.fireRateUpgradeLevel += 1;
@@ -329,7 +329,7 @@ export class GameEngine {
   }
 
   public upgradeDamage(): boolean {
-    const cost = 300 + (this.state.damageUpgradeLevel * 150);
+    const cost = 600 + (this.state.damageUpgradeLevel * 350);
     if (this.state.score >= cost) {
       this.state.score -= cost;
       this.state.damageUpgradeLevel += 1;
@@ -341,7 +341,7 @@ export class GameEngine {
   }
 
   public upgradeSpeed(): boolean {
-    const cost = 200 + (this.state.speedUpgradeLevel * 100);
+    const cost = 400 + (this.state.speedUpgradeLevel * 200);
     if (this.state.score >= cost) {
       this.state.score -= cost;
       this.state.speedUpgradeLevel += 1;
@@ -1390,7 +1390,7 @@ export class GameEngine {
             if (isBoss) {
               this.triggerShake(25, 20);
             }
-            this.state.score += isBoss ? 250 : 50;
+            this.state.score += isBoss ? 100 : 15;
             this.state.enemiesDefeated += 1;
 
             if (isBoss) {
@@ -1541,9 +1541,9 @@ export class GameEngine {
     const level = this.state.currentLevel;
 
     if (level === 1) {
-      // Level 1: Enemies defeated increase progress up to 80% (requires 25 enemies defeated), then Mountain Boss at 80%
+      // Level 1: Enemies defeated increase progress up to 80% (requires ~36 enemies defeated - 45% longer), then Mountain Boss at 80%
       if (this.state.levelProgress < 80) {
-        this.state.levelProgress = Math.min(80, this.state.enemiesDefeated * 3.2);
+        this.state.levelProgress = Math.min(80, this.state.enemiesDefeated * 2.2);
       } else {
         // Boss fight phase!
         if (this.bossSpawned && !this.bossRef && this.enemies.filter(e => e.type === "mountain_boss").length === 0) {
@@ -1553,9 +1553,9 @@ export class GameEngine {
       }
     } 
     else if (level === 2) {
-      // Level 2: Extended desert flight distance up to 80%, then Giant Worm Boss required
+      // Level 2: Extended desert flight distance up to 80% (45% longer), then Giant Worm Boss required
       if (this.state.levelProgress < 80) {
-        this.state.levelProgress += dt * 0.018;
+        this.state.levelProgress += dt * 0.0124;
         if (this.state.levelProgress >= 80) {
           this.state.levelProgress = 80;
         }
@@ -1568,9 +1568,9 @@ export class GameEngine {
       }
     } 
     else if (level === 3) {
-      // Level 3: Extended forest flight distance up to 80%, then Ancient Forest Ent Boss required
+      // Level 3: Extended forest flight distance up to 80% (45% longer), then Ancient Forest Ent Boss required
       if (this.state.levelProgress < 80) {
-        this.state.levelProgress += dt * 0.020;
+        this.state.levelProgress += dt * 0.0138;
         if (this.state.levelProgress >= 80) {
           this.state.levelProgress = 80;
         }
@@ -1583,9 +1583,9 @@ export class GameEngine {
       }
     }
     else if (level === 4) {
-      // Level 4: Extended ocean flight distance up to 80%, then Kraken Boss required
+      // Level 4: Extended ocean flight distance up to 80% (45% longer), then Kraken Boss required
       if (this.state.levelProgress < 80) {
-        this.state.levelProgress += dt * 0.022;
+        this.state.levelProgress += dt * 0.0151;
         if (this.state.levelProgress >= 80) {
           this.state.levelProgress = 80;
         }

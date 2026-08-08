@@ -26,7 +26,7 @@ export class CollectibleItem {
     this.x = options.x;
     this.y = options.y;
     this.type = options.type || "gem";
-    this.value = options.value || (this.type === "health_crystal" ? 40 : 150);
+    this.value = options.value || (this.type === "health_crystal" ? 10 : 20);
 
     // Initial drift physics
     this.vx = -1.8 - Math.random() * 0.8;
