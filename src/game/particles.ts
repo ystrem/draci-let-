@@ -194,6 +194,21 @@ export class ParticleSystem {
     });
   }
 
+  // Level 4: Underwater bubbles rising
+  public emitBubbles(width: number, height: number) {
+    if (Math.random() > 0.08) return;
+    this.emit({
+      x: Math.random() * width,
+      y: height + 20,
+      vx: -1.5 - Math.random() * 1.5,
+      vy: -1.2 - Math.random() * 1.5, // Float upwards
+      color: Math.random() > 0.5 ? 0x38bdf8 : 0x67e8f9,
+      size: 2 + Math.random() * 3,
+      decay: 0.008 + Math.random() * 0.008,
+      shape: "circle",
+    });
+  }
+
   // Update particles
   public update(ticker: { deltaTime: number }) {
     const dt = ticker.deltaTime || 1;

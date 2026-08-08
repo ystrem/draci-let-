@@ -14,7 +14,7 @@ export class GameEngine {
   // Game layers
   private gameStage!: Container;
   private bgManager!: ParallaxBackground;
-  private playerDragon!: PlayerDragon;
+  private playerDragons: PlayerDragon[] = [];
   private particles!: ParticleSystem;
 
   // Lists of active entities
@@ -69,6 +69,9 @@ export class GameEngine {
       enemiesDefeated: 0,
       playerHealth: initialConfig.maxHealth,
       playerMaxHealth: initialConfig.maxHealth,
+      playerCount: 1,
+      playersHealth: [initialConfig.maxHealth],
+      playersMaxHealth: [initialConfig.maxHealth],
       levelProgress: 0,
       selectedDragonId: initialConfig.id,
       dragonConfig: initialConfig,
@@ -142,10 +145,8 @@ export class GameEngine {
       // 2. Setup particle system
       this.particles = new ParticleSystem(this.gameStage);
 
-      // 3. Setup player dragon
-      this.playerDragon = new PlayerDragon();
-      this.playerDragon.applyConfig(this.currentConfig, this.manualHue, this.manualSpeed, this.manualFireRate);
-      this.gameStage.addChild(this.playerDragon.container);
+      // 3. Setup player dragons
+      this.setupPlayers();
 
       // Bind event listeners
       window.addEventListener("keydown", this.handleKeyDown);
@@ -161,6 +162,57 @@ export class GameEngine {
     return this.initPromise;
   }
 
+  // Setup player dragons for 1 to 4 active players
+  public setupPlayers() {
+    // Clear existing dragons from stage
+    for (const d of this.playerDragons) {
+      d.destroy();
+    }
+    this.playerDragons = [];
+
+    const count = Math.max(1, Math.min(4, this.state.playerCount));
+    this.state.playerCount = count;
+
+    const yPositions = count === 1 ? [225] : count === 2 ? [160, 290] : count === 3 ? [120, 225, 330] : [90, 180, 270, 360];
+    const defaultDragons = [DRAGONS[0], DRAGONS[4], DRAGONS[3], DRAGONS[2]]; // Red, Blue, Green, Yellow
+
+    this.state.playersHealth = [];
+    this.state.playersMaxHealth = [];
+
+    for (let i = 0; i < count; i++) {
+      const dragonConfig = i === 0 ? this.currentConfig : defaultDragons[i % defaultDragons.length];
+      const d = new PlayerDragon();
+      d.applyConfig(dragonConfig);
+      // Ensure equalized flying speed across players
+      if (this.manualSpeed) {
+        d.speed = this.manualSpeed;
+      } else {
+        d.speed = Math.max(d.speed, 6.5);
+      }
+      d.x = 100;
+      d.y = yPositions[i];
+      d.updatePosition();
+
+      this.playerDragons.push(d);
+      if (this.gameStage) {
+        this.gameStage.addChild(d.container);
+      }
+
+      this.state.playersHealth.push(dragonConfig.maxHealth);
+      this.state.playersMaxHealth.push(dragonConfig.maxHealth);
+    }
+
+    // Keep state.playerHealth synced to Player 1 or max surviving
+    this.state.playerHealth = this.state.playersHealth[0] || 100;
+    this.state.playerMaxHealth = this.state.playersMaxHealth[0] || 100;
+  }
+
+  public setPlayerCount(count: number) {
+    this.state.playerCount = count;
+    this.setupPlayers();
+    this.triggerStateChange();
+  }
+
   // Begin actual level gameplay
   public startLevel(levelId: number) {
     this.state.currentLevel = levelId;
@@ -168,13 +220,8 @@ export class GameEngine {
     this.state.levelProgress = 0;
     this.state.enemiesDefeated = 0;
     
-    // Reset player health based on selected config
-    this.state.playerHealth = this.currentConfig.maxHealth;
-    this.state.playerMaxHealth = this.currentConfig.maxHealth;
-    
-    this.playerDragon.x = 100;
-    this.playerDragon.y = 225;
-    this.playerDragon.updatePosition();
+    // Reset player healths for all active players
+    this.setupPlayers();
 
     // Reset bosses
     this.bossSpawned = false;
@@ -228,13 +275,17 @@ export class GameEngine {
     this.state.manualSpeed = speed;
     this.state.manualFireRate = fireRate;
 
-    if (this.playerDragon) {
-      this.playerDragon.applyConfig(this.currentConfig, hue, speed, fireRate);
-    }
+    this.playerDragons.forEach((d, idx) => {
+      if (idx === 0) {
+        d.applyConfig(this.currentConfig, hue, speed, fireRate);
+      } else {
+        d.speed = speed;
+      }
+    });
     this.triggerStateChange();
   }
 
-  // Change dragon skin on selection
+  // Change dragon skin on selection for P1
   public selectDragon(dragon: DragonConfig) {
     this.currentConfig = dragon;
     this.manualHue = dragon.baseHue;
@@ -249,8 +300,10 @@ export class GameEngine {
     this.state.playerMaxHealth = dragon.maxHealth;
     this.state.playerHealth = dragon.maxHealth;
 
-    if (this.playerDragon) {
-      this.playerDragon.applyConfig(dragon);
+    if (this.playerDragons[0]) {
+      this.playerDragons[0].applyConfig(dragon);
+      this.state.playersHealth[0] = dragon.maxHealth;
+      this.state.playersMaxHealth[0] = dragon.maxHealth;
     }
     this.triggerStateChange();
   }
@@ -262,6 +315,9 @@ export class GameEngine {
 
   public resetGame() {
     this.state.score = 0;
+    this.state.currentLevel = 1;
+    this.state.levelProgress = 0;
+    this.state.enemiesDefeated = 0;
     this.selectDragon(DRAGONS[0]);
     this.startLevel(1);
   }
@@ -307,15 +363,17 @@ export class GameEngine {
       // Menu preview loop: update background and let player dragon float & flap wings
       if (this.state.status === "menu") {
         if (this.bgManager) this.bgManager.update(ticker);
-        if (this.playerDragon) {
-          this.playerDragon.x = 220;
-          this.playerDragon.y = 225 + Math.sin(Date.now() * 0.003) * 16;
-          this.playerDragon.updatePosition();
-          this.playerDragon.update(ticker);
-          if (this.particles) {
-            this.particles.emitDragonTrail(this.playerDragon.x, this.playerDragon.y, this.playerDragon.projectileColor);
-            this.particles.emitStormEmbers(800, 450);
-          }
+        if (this.playerDragons.length > 0) {
+          this.playerDragons.forEach((dragon, idx) => {
+            dragon.x = 180 + idx * 70;
+            dragon.y = 225 + Math.sin(Date.now() * 0.003 + idx) * 16;
+            dragon.updatePosition();
+            dragon.update(ticker);
+            if (this.particles) {
+              this.particles.emitDragonTrail(dragon.x, dragon.y, dragon.projectileColor);
+            }
+          });
+          if (this.particles) this.particles.emitStormEmbers(800, 450);
         }
         return;
       }
@@ -327,86 +385,217 @@ export class GameEngine {
     try {
       if (!this.isRunning) return;
 
-    const dt = ticker.deltaTime || 1;
-    const now = Date.now();
+      const dt = ticker.deltaTime || 1;
+      const now = Date.now();
 
-    // 1. Process Screen Shake
-    if (this.shakeTime > 0) {
-      this.gameStage.x = (Math.random() - 0.5) * this.shakeIntensity;
-      this.gameStage.y = (Math.random() - 0.5) * this.shakeIntensity;
-      this.shakeTime -= dt;
-      if (this.shakeTime <= 0) {
-        this.gameStage.x = 0;
-        this.gameStage.y = 0;
+      // 1. Process Screen Shake
+      if (this.shakeTime > 0) {
+        this.gameStage.x = (Math.random() - 0.5) * this.shakeIntensity;
+        this.gameStage.y = (Math.random() - 0.5) * this.shakeIntensity;
+        this.shakeTime -= dt;
+        if (this.shakeTime <= 0) {
+          this.gameStage.x = 0;
+          this.gameStage.y = 0;
+        }
       }
-    }
 
-    // 2. Background update
-    this.bgManager.update(ticker);
+      // 2. Background update
+      this.bgManager.update(ticker);
 
-    // 3. Ambient level-specific particles
-    if (this.state.currentLevel === 1) {
-      this.particles.emitStormEmbers(800, 450);
-    } else if (this.state.currentLevel === 2) {
-      this.particles.emitSandstorm(800, 450);
-    } else if (this.state.currentLevel === 3) {
-      this.particles.emitLeaves(800, 450);
-    }
-
-    // 4. Player dragon update & controls
-    this.playerDragon.update(ticker);
-    this.particles.emitDragonTrail(this.playerDragon.x, this.playerDragon.y, this.playerDragon.projectileColor);
-
-    let dx = 0;
-    let dy = 0;
-    if (this.keys["ArrowUp"] || this.keys["KeyW"] || this.keys["w"]) dy = -1;
-    if (this.keys["ArrowDown"] || this.keys["KeyS"] || this.keys["s"]) dy = 1;
-    if (this.keys["ArrowLeft"] || this.keys["KeyA"] || this.keys["a"]) dx = -1;
-    if (this.keys["ArrowRight"] || this.keys["KeyD"] || this.keys["d"]) dx = 1;
-
-    // Normalize diagonal movement speed
-    if (dx !== 0 && dy !== 0) {
-      dx *= 0.707;
-      dy *= 0.707;
-    }
-
-    if (dx !== 0 || dy !== 0) {
-      this.playerDragon.move(dx, dy, 800, 450);
-    }
-
-    // Firing projectiles
-    if (this.keys["Space"] || this.keys[" "]) {
-      if (now - this.playerDragon.lastFired >= this.playerDragon.fireRate) {
-        this.playerDragon.lastFired = now;
-        
-        // Spawn fireball projectile
-        const proj = new Projectile({
-          x: this.playerDragon.x + 35,
-          y: this.playerDragon.y,
-          vx: 8.5,
-          vy: 0,
-          color: this.playerDragon.projectileColor,
-          damage: 10,
-          owner: "player",
-          type: "fire"
-        });
-        
-        this.playerProjectiles.push(proj);
-        this.gameStage.addChild(proj.container);
+      // 3. Ambient level-specific particles
+      if (this.state.currentLevel === 1) {
+        this.particles.emitStormEmbers(800, 450);
+      } else if (this.state.currentLevel === 2) {
+        this.particles.emitSandstorm(800, 450);
+      } else if (this.state.currentLevel === 3) {
+        this.particles.emitLeaves(800, 450);
+      } else if (this.state.currentLevel === 4) {
+        this.particles.emitBubbles(800, 450);
       }
-    }
 
-    // 5. Spawn enemies and obstacles dynamically
-    this.handleSpawns(dt);
+      // 4. Gamepad polling
+      const gamepads = typeof navigator !== "undefined" && navigator.getGamepads ? navigator.getGamepads() : [];
 
-    // 6. Update all entity positions
-    this.updateEntities(ticker);
+      // Update inputs & movement for each active player
+      for (let pIdx = 0; pIdx < this.playerDragons.length; pIdx++) {
+        const dragon = this.playerDragons[pIdx];
+        const currentHealth = this.state.playersHealth[pIdx] || 0;
+        if (currentHealth <= 0) continue; // Skip defeated player
 
-    // 7. Check collisions
-    this.checkCollisions();
+        dragon.update(ticker);
+        this.particles.emitDragonTrail(dragon.x, dragon.y, dragon.projectileColor);
 
-    // 8. Track level progression / victory transitions
-    this.trackProgression(dt);
+        let dx = 0;
+        let dy = 0;
+        let firePressed = false;
+        let specialPressed = false;
+
+        // Player 1 controls (WASD or Arrow keys if alone, or Gamepad 0)
+        if (pIdx === 0) {
+          if (this.keys["KeyW"] || this.keys["w"] || (this.playerDragons.length === 1 && (this.keys["ArrowUp"] || this.keys["Up"]))) dy -= 1;
+          if (this.keys["KeyS"] || this.keys["s"] || (this.playerDragons.length === 1 && (this.keys["ArrowDown"] || this.keys["Down"]))) dy += 1;
+          if (this.keys["KeyA"] || this.keys["a"] || (this.playerDragons.length === 1 && (this.keys["ArrowLeft"] || this.keys["Left"]))) dx -= 1;
+          if (this.keys["KeyD"] || this.keys["d"] || (this.playerDragons.length === 1 && (this.keys["ArrowRight"] || this.keys["Right"]))) dx += 1;
+          if (this.keys["Space"] || this.keys[" "] || this.keys["KeyF"] || this.keys["f"]) firePressed = true;
+          if (this.keys["KeyE"] || this.keys["e"] || this.keys["KeyQ"] || this.keys["q"] || this.keys["ShiftLeft"]) specialPressed = true;
+        }
+        // Player 2 controls (Arrow keys, Up/Down/Left/Right, Enter/Shift)
+        else if (pIdx === 1) {
+          if (this.keys["ArrowUp"] || this.keys["Up"] || (this.playerDragons.length === 2 && (this.keys["KeyI"] || this.keys["i"]))) dy -= 1;
+          if (this.keys["ArrowDown"] || this.keys["Down"] || (this.playerDragons.length === 2 && (this.keys["KeyK"] || this.keys["k"]))) dy += 1;
+          if (this.keys["ArrowLeft"] || this.keys["Left"] || (this.playerDragons.length === 2 && (this.keys["KeyJ"] || this.keys["j"]))) dx -= 1;
+          if (this.keys["ArrowRight"] || this.keys["Right"] || (this.playerDragons.length === 2 && (this.keys["KeyL"] || this.keys["l"]))) dx += 1;
+          if (this.keys["Enter"] || this.keys["ShiftRight"] || this.keys["Numpad0"] || this.keys["0"] || this.keys["Space"]) firePressed = true;
+          if (this.keys["NumpadDecimal"] || this.keys["Delete"] || this.keys["ControlRight"] || this.keys["KeyM"]) specialPressed = true;
+        }
+        // Player 3 controls (I, K, J, L, O/U)
+        else if (pIdx === 2) {
+          if (this.keys["KeyI"] || this.keys["i"]) dy -= 1;
+          if (this.keys["KeyK"] || this.keys["k"]) dy += 1;
+          if (this.keys["KeyJ"] || this.keys["j"]) dx -= 1;
+          if (this.keys["KeyL"] || this.keys["l"]) dx += 1;
+          if (this.keys["KeyO"] || this.keys["o"] || this.keys["KeyU"] || this.keys["u"]) firePressed = true;
+          if (this.keys["KeyP"] || this.keys["p"] || this.keys["KeyY"] || this.keys["y"]) specialPressed = true;
+        }
+        // Player 4 controls (Numpad 8, 5, 4, 6 or 8, 5, 4, 6, NumpadEnter)
+        else if (pIdx === 3) {
+          if (this.keys["Numpad8"] || this.keys["8"]) dy -= 1;
+          if (this.keys["Numpad5"] || this.keys["Numpad2"] || this.keys["5"] || this.keys["2"]) dy += 1;
+          if (this.keys["Numpad4"] || this.keys["4"]) dx -= 1;
+          if (this.keys["Numpad6"] || this.keys["6"]) dx += 1;
+          if (this.keys["NumpadEnter"] || this.keys["NumpadDecimal"] || this.keys["+"] || this.keys["KeyP"]) firePressed = true;
+          if (this.keys["Numpad3"] || this.keys["Numpad9"] || this.keys["KeyM"]) specialPressed = true;
+        }
+
+        // Check Gamepad inputs for this player
+        const gp = gamepads[pIdx];
+        if (gp && gp.connected) {
+          // Analog Stick or D-Pad (0.35 deadzone threshold to avoid drift freeze)
+          if (Math.abs(gp.axes[0]) > 0.35) dx = gp.axes[0];
+          if (Math.abs(gp.axes[1]) > 0.35) dy = gp.axes[1];
+
+          if (gp.buttons[12]?.pressed) dy = -1; // D-Pad Up
+          if (gp.buttons[13]?.pressed) dy = 1;  // D-Pad Down
+          if (gp.buttons[14]?.pressed) dx = -1; // D-Pad Left
+          if (gp.buttons[15]?.pressed) dx = 1;  // D-Pad Right
+
+          if (gp.buttons[0]?.pressed || gp.buttons[1]?.pressed || gp.buttons[2]?.pressed || gp.buttons[5]?.pressed) {
+            firePressed = true;
+          }
+          if (gp.buttons[3]?.pressed || gp.buttons[4]?.pressed || gp.buttons[7]?.pressed) {
+            specialPressed = true;
+          }
+        }
+
+        // Normalize speed
+        if (dx !== 0 && dy !== 0) {
+          dx *= 0.707;
+          dy *= 0.707;
+        }
+
+        if (dx !== 0 || dy !== 0) {
+          dragon.move(dx, dy, 800, 450);
+        }
+
+        // --- PRIMARY FIRING (Multi-Attack Varieties) ---
+        if (firePressed) {
+          if (now - dragon.lastFired >= dragon.fireRate) {
+            dragon.lastFired = now;
+
+            const isSpread = pIdx === 0 || pIdx === 2;
+            const isPlasma = pIdx === 1;
+
+            if (isPlasma) {
+              // Heavy Plasma Super Wave
+              const proj = new Projectile({
+                x: dragon.x + 35,
+                y: dragon.y,
+                vx: 10.0,
+                vy: 0,
+                color: dragon.projectileColor,
+                damage: 18,
+                owner: "player",
+                type: "plasma"
+              });
+              this.playerProjectiles.push(proj);
+              this.gameStage.addChild(proj.container);
+            } else if (isSpread) {
+              // Triple Spread Fireball Shot (Fan Arc)
+              const angles = [-1.8, 0, 1.8];
+              angles.forEach((vy) => {
+                const proj = new Projectile({
+                  x: dragon.x + 35,
+                  y: dragon.y,
+                  vx: 8.5,
+                  vy: vy,
+                  color: dragon.projectileColor,
+                  damage: 9,
+                  owner: "player",
+                  type: "fire"
+                });
+                this.playerProjectiles.push(proj);
+                this.gameStage.addChild(proj.container);
+              });
+            } else {
+              // High-speed Laser Beam
+              const proj = new Projectile({
+                x: dragon.x + 35,
+                y: dragon.y,
+                vx: 12.0,
+                vy: 0,
+                color: dragon.projectileColor,
+                damage: 12,
+                owner: "player",
+                type: "laser_beam"
+              });
+              this.playerProjectiles.push(proj);
+              this.gameStage.addChild(proj.container);
+            }
+          }
+        }
+
+        // --- SECONDARY SPECIAL ATTACK (Radial Super Nova Burst) ---
+        if (specialPressed) {
+          if (now - dragon.lastSpecialFired >= dragon.specialCooldown) {
+            dragon.lastSpecialFired = now;
+
+            // Screen Shake & Explosion
+            this.shakeTime = 12;
+            this.shakeIntensity = 8;
+            this.particles.emitExplosion(dragon.x, dragon.y, dragon.projectileColor, 25);
+
+            // Launch 8 Radial Fireballs in 360 starburst
+            const numShots = 8;
+            for (let s = 0; s < numShots; s++) {
+              const angle = (s * Math.PI * 2) / numShots;
+              const proj = new Projectile({
+                x: dragon.x + Math.cos(angle) * 20,
+                y: dragon.y + Math.sin(angle) * 20,
+                vx: Math.cos(angle) * 7.5,
+                vy: Math.sin(angle) * 7.5,
+                color: dragon.projectileColor,
+                damage: 15,
+                owner: "player",
+                type: "fire"
+              });
+              this.playerProjectiles.push(proj);
+              this.gameStage.addChild(proj.container);
+            }
+          }
+        }
+      }
+
+      // 5. Spawn enemies and obstacles dynamically
+      this.handleSpawns(dt);
+
+      // 6. Update all entity positions
+      this.updateEntities(ticker);
+
+      // 7. Check collisions
+      this.checkCollisions();
+
+      // 8. Track level progression / victory transitions
+      this.trackProgression(dt);
     } catch (e) {
       console.warn("Transient ticker update error ignored:", e);
     }
@@ -417,25 +606,49 @@ export class GameEngine {
     const level = this.state.currentLevel;
 
     if (level === 1) {
-      // Level 1 spawning: Nagas and Agile Dragon Monsters
-      this.enemySpawnTimer -= dt * 16.67; // approx ms
-      if (this.enemySpawnTimer <= 0) {
-        this.enemySpawnTimer = 1800 + Math.random() * 1200; // 1.8 to 3 seconds
-        
-        const type: EnemyType = Math.random() > 0.4 ? "naga" : "dragon_monster";
-        const enemy = new Enemy(type, 850, 50 + Math.random() * 320);
-        this.enemies.push(enemy);
-        this.gameStage.addChild(enemy.container);
+      // Level 1 (Kixskuske hory - Mountain Peaks): Flying Dragon Monsters and Mountain Nagas only, then Mountain Boss
+      if (this.state.levelProgress < 80) {
+        this.enemySpawnTimer -= dt * 16.67; // approx ms
+        if (this.enemySpawnTimer <= 0) {
+          this.enemySpawnTimer = 1600 + Math.random() * 1000; // 1.6 to 2.6 seconds
+          
+          const rand = Math.random();
+          let type: EnemyType = "naga";
+          const spawnY = 50 + Math.random() * 320;
+
+          if (rand < 0.5) {
+            type = "naga"; // Mountain Naga serpent
+          } else {
+            type = "dragon_monster"; // Agile flying gargoyle dragon
+          }
+
+          const enemy = new Enemy(type, 850, spawnY);
+          this.enemies.push(enemy);
+          this.gameStage.addChild(enemy.container);
+        }
+      } else if (!this.bossSpawned) {
+        // Spawn Mountain Titan Boss!
+        this.bossSpawned = true;
+        const mountainBoss = new Enemy("mountain_boss", 850, 200);
+        this.enemies.push(mountainBoss);
+        this.bossRef = mountainBoss;
+        this.gameStage.addChild(mountainBoss.container);
+
+        this.state.bossHealth = mountainBoss.health;
+        this.state.bossMaxHealth = mountainBoss.maxHealth;
+        this.triggerStateChange();
       }
     } 
     else if (level === 2) {
-      // Level 2 spawning: Worm boss spawner at 80% progress
+      // Level 2 (Poušť Bojli - Desert Dunes): Desert Sand Serpent Nagas only, then Giant Sand Worm Boss
       if (this.state.levelProgress < 80) {
-        // Sandstorms spawn occasional mini-nagas as desert leeches
         this.enemySpawnTimer -= dt * 16.67;
         if (this.enemySpawnTimer <= 0) {
-          this.enemySpawnTimer = 2200 + Math.random() * 1000;
-          const enemy = new Enemy("naga", 850, 50 + Math.random() * 300);
+          this.enemySpawnTimer = 1800 + Math.random() * 1000;
+          const type: EnemyType = "naga"; // Desert Sand Viper / Naga
+          const spawnY = 60 + Math.random() * 300;
+
+          const enemy = new Enemy(type, 850, spawnY);
           this.enemies.push(enemy);
           this.gameStage.addChild(enemy.container);
         }
@@ -460,27 +673,74 @@ export class GameEngine {
       }
     } 
     else if (level === 3) {
-      // Level 3 spawning: Solid woodland obstacles & ground Dwarves throwing thorns
-      this.obstacleSpawnTimer -= dt * 16.67;
-      if (this.obstacleSpawnTimer <= 0) {
-        this.obstacleSpawnTimer = 2200 + Math.random() * 1200; // every 2.2 - 3.4s
-        
-        const type = Math.random() > 0.5 ? "branch" : "root";
-        const scrollSpeed = -3.5;
-        const obst = new Obstacle(type, 850, 450, scrollSpeed);
-        this.obstacles.push(obst);
-        this.gameStage.addChild(obst.container);
+      // Level 3 (Masivní les - Ancient Forest): Woodland obstacles & Forest Dwarves only, then Forest Boss
+      if (this.state.levelProgress < 80) {
+        this.obstacleSpawnTimer -= dt * 16.67;
+        if (this.obstacleSpawnTimer <= 0) {
+          this.obstacleSpawnTimer = 1800 + Math.random() * 1000;
+          
+          const type = Math.random() > 0.5 ? "branch" : "root";
+          const scrollSpeed = -3.5;
+          const obst = new Obstacle(type, 850, 450, scrollSpeed);
+          this.obstacles.push(obst);
+          this.gameStage.addChild(obst.container);
 
-        // If it's a root (ground base), 60% chance to spawn a dwarf standing on it!
-        if (type === "root") {
-          const dwarfX = 850 + obst.width / 2;
-          const dwarfY = 450 - obst.height; // placed on top of root
-          const dwarf = new Enemy("dwarf", dwarfX, dwarfY - 20);
-          // Set dwarf speed to match root scrolling speed so it stays locked on top of the root!
-          dwarf.speedX = scrollSpeed; 
-          this.enemies.push(dwarf);
-          this.gameStage.addChild(dwarf.container);
+          // Spawn ground figure (Forest Dwarf in red hood throwing thorns & bombs) on branches/roots
+          const figureType: EnemyType = "dwarf";
+          const figureX = 850 + obst.width / 2;
+          const figureY = 450 - obst.height - 20;
+          const figure = new Enemy(figureType, figureX, figureY);
+          figure.speedX = scrollSpeed; 
+          this.enemies.push(figure);
+          this.gameStage.addChild(figure.container);
         }
+      } else if (!this.bossSpawned) {
+        // Spawn Ancient Forest Ent Giant Boss!
+        this.bossSpawned = true;
+        const forestBoss = new Enemy("forest_boss", 850, 310);
+        this.enemies.push(forestBoss);
+        this.bossRef = forestBoss;
+        this.gameStage.addChild(forestBoss.container);
+
+        this.state.bossHealth = forestBoss.health;
+        this.state.bossMaxHealth = forestBoss.maxHealth;
+        this.triggerStateChange();
+      }
+    }
+    else if (level === 4) {
+      // Level 4 (Mořské hlubiny - Ocean Depths): Bioluminescent jellies, hungry piranhas, electric serpents, then Kraken Boss
+      if (this.state.levelProgress < 80) {
+        this.enemySpawnTimer -= dt * 16.67;
+        if (this.enemySpawnTimer <= 0) {
+          this.enemySpawnTimer = 1400 + Math.random() * 900;
+          
+          const rand = Math.random();
+          let type: EnemyType = "sea_jelly";
+          const spawnY = 50 + Math.random() * 340;
+
+          if (rand < 0.4) {
+            type = "sea_jelly";
+          } else if (rand < 0.75) {
+            type = "sea_piranha";
+          } else {
+            type = "sea_serpent";
+          }
+
+          const enemy = new Enemy(type, 850, spawnY);
+          this.enemies.push(enemy);
+          this.gameStage.addChild(enemy.container);
+        }
+      } else if (!this.bossSpawned) {
+        // Spawn Ancient Ocean Kraken Boss!
+        this.bossSpawned = true;
+        const krakenBoss = new Enemy("sea_kraken_boss", 850, 220);
+        this.enemies.push(krakenBoss);
+        this.bossRef = krakenBoss;
+        this.gameStage.addChild(krakenBoss.container);
+
+        this.state.bossHealth = krakenBoss.health;
+        this.state.bossMaxHealth = krakenBoss.maxHealth;
+        this.triggerStateChange();
       }
     }
   }
@@ -488,8 +748,16 @@ export class GameEngine {
   // --- ENTITY UPDATER ---
   private updateEntities(ticker: any) {
     const dt = ticker.deltaTime || 1;
-    const playerX = this.playerDragon.x;
-    const playerY = this.playerDragon.y;
+    // Find active player 1 or first living dragon for enemy targeting
+    let targetX = 100;
+    let targetY = 225;
+    for (let i = 0; i < this.playerDragons.length; i++) {
+      if ((this.state.playersHealth[i] || 0) > 0) {
+        targetX = this.playerDragons[i].x;
+        targetY = this.playerDragons[i].y;
+        break;
+      }
+    }
 
     // Update player projectiles
     for (let i = this.playerProjectiles.length - 1; i >= 0; i--) {
@@ -530,25 +798,211 @@ export class GameEngine {
     // Update enemies
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const enemy = this.enemies[i];
-      enemy.update(ticker, playerX, playerY, 800, 450);
+      enemy.update(ticker, targetX, targetY, 800, 450);
 
       // Handle enemy firing behaviors
       if (enemy.tryShoot(Date.now())) {
-        if (enemy.type === "dragon_monster") {
-          // Spit acid green projectile horizontally
+        if (enemy.type === "naga") {
+          // Naga shoots venom orbs towards target player
+          const dy = targetY - enemy.y;
           const proj = new Projectile({
-            x: enemy.x - 20,
+            x: enemy.x - 15,
             y: enemy.y,
-            vx: -5.0,
-            vy: 0,
-            color: 0x22c55e,
+            vx: -4.8,
+            vy: Math.sign(dy) * 1.2,
+            color: 0x14b8a6,
             damage: 8,
             owner: "enemy",
             type: "acid"
           });
           this.enemyProjectiles.push(proj);
           this.gameStage.addChild(proj.container);
+        }
+        else if (enemy.type === "dragon_monster") {
+          // Dragon monster shoots either acid or 3-way firebreath spray
+          const rand = Math.random();
+          if (rand < 0.5) {
+            // Triple Firebreath Spray
+            const tys = [-1.5, 0, 1.5];
+            tys.forEach((vy) => {
+              const proj = new Projectile({
+                x: enemy.x - 20,
+                y: enemy.y,
+                vx: -5.0,
+                vy: vy,
+                color: 0xef4444,
+                damage: 7,
+                owner: "enemy",
+                type: "fire"
+              });
+              this.enemyProjectiles.push(proj);
+              this.gameStage.addChild(proj.container);
+            });
+          } else {
+            // Spit acid green projectile
+            const proj = new Projectile({
+              x: enemy.x - 20,
+              y: enemy.y,
+              vx: -5.5,
+              vy: 0,
+              color: 0x22c55e,
+              damage: 9,
+              owner: "enemy",
+              type: "acid"
+            });
+            this.enemyProjectiles.push(proj);
+            this.gameStage.addChild(proj.container);
+          }
         } 
+        else if (enemy.type === "mountain_boss") {
+          // Level 1 Boss Attacks: Lightning Plasma Stream, 5-Way Fireball Spread, 8-Way Storm Nova
+          const mRand = Math.random();
+          if (mRand < 0.4) {
+            const proj = new Projectile({
+              x: enemy.x - 50,
+              y: enemy.y,
+              vx: -7.5,
+              vy: (Math.random() - 0.5) * 1.5,
+              color: 0x06b6d4,
+              damage: 15,
+              owner: "enemy",
+              type: "plasma"
+            });
+            this.enemyProjectiles.push(proj);
+            this.gameStage.addChild(proj.container);
+          } else if (mRand < 0.75) {
+            const vys = [-3.0, -1.5, 0, 1.5, 3.0];
+            vys.forEach((vy) => {
+              const proj = new Projectile({
+                x: enemy.x - 40,
+                y: enemy.y,
+                vx: -5.0,
+                vy: vy,
+                color: 0x22d3ee,
+                damage: 10,
+                owner: "enemy",
+                type: "fire"
+              });
+              this.enemyProjectiles.push(proj);
+              this.gameStage.addChild(proj.container);
+            });
+          } else {
+            for (let a = 0; a < Math.PI * 2; a += Math.PI / 4) {
+              const proj = new Projectile({
+                x: enemy.x + Math.cos(a) * 30,
+                y: enemy.y + Math.sin(a) * 30,
+                vx: Math.cos(a) * 4.8,
+                vy: Math.sin(a) * 4.8,
+                color: 0x38bdf8,
+                damage: 12,
+                owner: "enemy",
+                type: "magic_orb"
+              });
+              this.enemyProjectiles.push(proj);
+              this.gameStage.addChild(proj.container);
+            }
+          }
+        }
+        else if (enemy.type === "forest_boss") {
+          // Level 3 Boss Attacks: Tree Boulders, Homing Spores, Overhead Bomb Barrage
+          const fRand = Math.random();
+          if (fRand < 0.4) {
+            [-15, 15].forEach((offsetY) => {
+              const proj = new Projectile({
+                x: enemy.x - 40,
+                y: enemy.y + offsetY,
+                vx: -5.0 - Math.random(),
+                vy: (Math.random() - 0.5) * 2.0,
+                color: 0x3f2305,
+                damage: 20,
+                owner: "enemy",
+                type: "boulder"
+              });
+              this.enemyProjectiles.push(proj);
+              this.gameStage.addChild(proj.container);
+            });
+          } else if (fRand < 0.75) {
+            const dy = targetY - enemy.y;
+            for (let i = -1; i <= 1; i++) {
+              const proj = new Projectile({
+                x: enemy.x - 30,
+                y: enemy.y + i * 20,
+                vx: -4.5,
+                vy: Math.sign(dy) * 1.5 + i * 0.8,
+                color: 0x22c55e,
+                damage: 12,
+                owner: "enemy",
+                type: "homing"
+              });
+              this.enemyProjectiles.push(proj);
+              this.gameStage.addChild(proj.container);
+            }
+          } else {
+            for (let i = 0; i < 3; i++) {
+              const proj = new Projectile({
+                x: enemy.x - 20,
+                y: enemy.y - 30,
+                vx: -3.0 - i * 1.2,
+                vy: -5.5 - Math.random() * 2,
+                color: 0xef4444,
+                damage: 16,
+                owner: "enemy",
+                type: "bomb"
+              });
+              this.enemyProjectiles.push(proj);
+              this.gameStage.addChild(proj.container);
+            }
+          }
+        }
+        else if (enemy.type === "giant_worm") {
+          // Giant Sand Worm Boss Attacks (3 varied attack types)
+          const bossRand = Math.random();
+          if (bossRand < 0.4) {
+            // Boss Attack 1: Throws Mega Sand Boulder
+            const proj = new Projectile({
+              x: enemy.x - 30,
+              y: enemy.y - 10,
+              vx: -4.0,
+              vy: (Math.random() - 0.5) * 2.0,
+              color: 0x9a3412,
+              damage: 20,
+              owner: "enemy",
+              type: "boulder"
+            });
+            this.enemyProjectiles.push(proj);
+            this.gameStage.addChild(proj.container);
+          } else if (bossRand < 0.75) {
+            // Boss Attack 2: 8-Way Radial Poison Spike Burst
+            for (let a = 0; a < Math.PI * 2; a += Math.PI / 4) {
+              const proj = new Projectile({
+                x: enemy.x + Math.cos(a) * 20,
+                y: enemy.y + Math.sin(a) * 20,
+                vx: Math.cos(a) * 4.5,
+                vy: Math.sin(a) * 4.5,
+                color: 0xc084fc,
+                damage: 12,
+                owner: "enemy",
+                type: "poison"
+              });
+              this.enemyProjectiles.push(proj);
+              this.gameStage.addChild(proj.container);
+            }
+          } else {
+            // Boss Attack 3: Rapid Flame Stream
+            const proj = new Projectile({
+              x: enemy.x - 30,
+              y: enemy.y,
+              vx: -6.5,
+              vy: (Math.random() - 0.5) * 1.0,
+              color: 0xf97316,
+              damage: 10,
+              owner: "enemy",
+              type: "fire"
+            });
+            this.enemyProjectiles.push(proj);
+            this.gameStage.addChild(proj.container);
+          }
+        }
         else if (enemy.type === "worm_tail") {
           // Shoot twin poison spiked stinger needles in spread arc
           const proj1 = new Projectile({
@@ -577,32 +1031,131 @@ export class GameEngine {
           this.gameStage.addChild(proj2.container);
         } 
         else if (enemy.type === "dwarf") {
-          // Throw woody poison thorns upwards in a parabolic arc towards the player!
-          const dx = playerX - enemy.x;
-          // Calculate initial vy based on distance to lob it
-          const angleFactor = Math.min(1.0, Math.abs(dx) / 500);
+          // Dwarf throws woody thorns OR explosive bombs!
+          if (Math.random() > 0.5) {
+            // Throw explosive dwarf bomb
+            const proj = new Projectile({
+              x: enemy.x - 10,
+              y: enemy.y - 15,
+              vx: -3.0 - Math.random() * 1.5,
+              vy: -5.0,
+              color: 0xef4444,
+              damage: 15,
+              owner: "enemy",
+              type: "bomb"
+            });
+            this.enemyProjectiles.push(proj);
+            this.gameStage.addChild(proj.container);
+          } else {
+            // Throw woody poison thorns upwards in a parabolic arc
+            const dx = targetX - enemy.x;
+            const angleFactor = Math.min(1.0, Math.abs(dx) / 500);
+            const proj = new Projectile({
+              x: enemy.x - 10,
+              y: enemy.y - 15,
+              vx: -3.5 - Math.random() * 1.5,
+              vy: -4.5 - angleFactor * 3,
+              color: 0xeab308,
+              damage: 10,
+              owner: "enemy",
+              type: "thorn"
+            });
+            this.enemyProjectiles.push(proj);
+            this.gameStage.addChild(proj.container);
+          }
+        }
+        else if (enemy.type === "sea_jelly") {
+          // Jellyfish fires glowing electric bubble
           const proj = new Projectile({
-            x: enemy.x - 10,
-            y: enemy.y - 15,
-            vx: -3.5 - Math.random() * 1.5,
-            vy: -4.5 - angleFactor * 3, // lob up
-            color: 0xeab308,
-            damage: 10,
+            x: enemy.x - 12,
+            y: enemy.y,
+            vx: -4.0,
+            vy: (Math.random() - 0.5) * 1.5,
+            color: 0x38bdf8,
+            damage: 8,
             owner: "enemy",
-            type: "thorn"
+            type: "magic_orb"
           });
           this.enemyProjectiles.push(proj);
           this.gameStage.addChild(proj.container);
         }
+        else if (enemy.type === "sea_serpent") {
+          // Serpent fires plasma stream
+          const proj = new Projectile({
+            x: enemy.x - 20,
+            y: enemy.y,
+            vx: -5.5,
+            vy: (Math.random() - 0.5) * 1.2,
+            color: 0x06b6d4,
+            damage: 14,
+            owner: "enemy",
+            type: "acid"
+          });
+          this.enemyProjectiles.push(proj);
+          this.gameStage.addChild(proj.container);
+        }
+        else if (enemy.type === "sea_kraken_boss") {
+          // Level 4 Boss Attacks: Whirlpool Wave, Ink Bomb Barrage, 10-Way Water Burst
+          const kRand = Math.random();
+          if (kRand < 0.4) {
+            // Whirlpool wave stream
+            for (let i = -2; i <= 2; i++) {
+              const proj = new Projectile({
+                x: enemy.x - 50,
+                y: enemy.y + i * 18,
+                vx: -6.5,
+                vy: i * 0.8,
+                color: 0x38bdf8,
+                damage: 16,
+                owner: "enemy",
+                type: "plasma"
+              });
+              this.enemyProjectiles.push(proj);
+              this.gameStage.addChild(proj.container);
+            }
+          } else if (kRand < 0.75) {
+            // Ink bombs
+            for (let i = 0; i < 3; i++) {
+              const proj = new Projectile({
+                x: enemy.x - 30,
+                y: enemy.y - 20,
+                vx: -3.5 - i * 1.5,
+                vy: -4.5 - Math.random() * 2,
+                color: 0x1e1b4b,
+                damage: 18,
+                owner: "enemy",
+                type: "bomb"
+              });
+              this.enemyProjectiles.push(proj);
+              this.gameStage.addChild(proj.container);
+            }
+          } else {
+            // 10-way tentacles water radial spray
+            for (let a = 0; a < Math.PI * 2; a += Math.PI / 5) {
+              const proj = new Projectile({
+                x: enemy.x + Math.cos(a) * 35,
+                y: enemy.y + Math.sin(a) * 35,
+                vx: Math.cos(a) * 5.0,
+                vy: Math.sin(a) * 5.0,
+                color: 0x67e8f9,
+                damage: 14,
+                owner: "enemy",
+                type: "magic_orb"
+              });
+              this.enemyProjectiles.push(proj);
+              this.gameStage.addChild(proj.container);
+            }
+          }
+        }
       }
 
       // Sync Boss Health to HUD
-      if (enemy.type === "giant_worm") {
+      if (enemy.type === "giant_worm" || enemy.type === "mountain_boss" || enemy.type === "forest_boss" || enemy.type === "sea_kraken_boss") {
         this.state.bossHealth = Math.max(0, enemy.health);
       }
 
       // Remove off-screen minor enemies
-      if (enemy.x < -150 && enemy.type !== "giant_worm") {
+      if (enemy.x < -150 && enemy.type !== "giant_worm" && enemy.type !== "mountain_boss" && enemy.type !== "forest_boss" && enemy.type !== "sea_kraken_boss") {
         enemy.destroy();
         this.enemies.splice(i, 1);
       }
@@ -614,8 +1167,6 @@ export class GameEngine {
 
   // --- COLLISION DETECTION SYSTEMS ---
   private checkCollisions() {
-    const playerBox = this.playerDragon.getBoundingBox();
-
     // 1. Player Projectiles vs Enemies
     for (let pIdx = this.playerProjectiles.length - 1; pIdx >= 0; pIdx--) {
       const proj = this.playerProjectiles[pIdx];
@@ -638,12 +1189,16 @@ export class GameEngine {
           this.playerProjectiles.splice(pIdx, 1);
 
           if (isDead) {
+            const isBoss = (enemy.type === "giant_worm" || enemy.type === "mountain_boss" || enemy.type === "forest_boss" || enemy.type === "sea_kraken_boss");
             // Massive death particle shatter
-            this.particles.emitExplosion(enemy.x, enemy.y, 0xef4444, 18);
-            this.state.score += (enemy.type === "giant_worm") ? 500 : 100;
+            this.particles.emitExplosion(enemy.x, enemy.y, isBoss ? 0xf59e0b : 0xef4444, isBoss ? 40 : 18);
+            if (isBoss) {
+              this.triggerShake(25, 20);
+            }
+            this.state.score += isBoss ? 1000 : 100;
             this.state.enemiesDefeated += 1;
 
-            if (enemy.type === "giant_worm") {
+            if (isBoss) {
               this.bossRef = null;
               this.state.bossHealth = 0;
             }
@@ -657,59 +1212,61 @@ export class GameEngine {
       }
     }
 
-    // 2. Enemy Projectiles vs Player Dragon
-    for (let i = this.enemyProjectiles.length - 1; i >= 0; i--) {
-      const proj = this.enemyProjectiles[i];
-      const pBox = proj.getBoundingBox();
+    // Iterate through all active player dragons for enemy collisions
+    for (let plIdx = 0; plIdx < this.playerDragons.length; plIdx++) {
+      const dragon = this.playerDragons[plIdx];
+      if ((this.state.playersHealth[plIdx] || 0) <= 0) continue;
 
-      if (this.checkAABB(pBox, playerBox)) {
-        // Red blood hit splatter on dragon
-        this.particles.emitExplosion(proj.x, proj.y, 0xb91c1c, 10);
-        this.triggerShake(12, 10); // Heavy shake
+      const playerBox = dragon.getBoundingBox();
 
-        // Apply health reduction
-        this.state.playerHealth = Math.max(0, this.state.playerHealth - proj.damage);
-        
-        proj.destroy();
-        this.enemyProjectiles.splice(i, 1);
+      // 2. Enemy Projectiles vs Player Dragons
+      for (let i = this.enemyProjectiles.length - 1; i >= 0; i--) {
+        const proj = this.enemyProjectiles[i];
+        const pBox = proj.getBoundingBox();
 
-        this.checkGameOver();
-      }
-    }
+        if (this.checkAABB(pBox, playerBox)) {
+          this.particles.emitExplosion(proj.x, proj.y, 0xb91c1c, 10);
+          this.triggerShake(12, 10);
 
-    // 3. Enemies vs Player Dragon (Direct collisions)
-    for (let i = this.enemies.length - 1; i >= 0; i--) {
-      const enemy = this.enemies[i];
-      const eBox = enemy.getBoundingBox();
+          this.state.playersHealth[plIdx] = Math.max(0, (this.state.playersHealth[plIdx] || 0) - proj.damage);
+          
+          proj.destroy();
+          this.enemyProjectiles.splice(i, 1);
 
-      if (this.checkAABB(eBox, playerBox)) {
-        // Huge smash splash
-        this.particles.emitExplosion(enemy.x, enemy.y, 0xb91c1c, 15);
-        this.triggerShake(16, 12);
-
-        this.state.playerHealth = Math.max(0, this.state.playerHealth - enemy.damage);
-        
-        // Remove normal enemies on collision
-        if (enemy.type !== "giant_worm") {
-          enemy.destroy();
-          this.enemies.splice(i, 1);
+          this.checkGameOver();
         }
-
-        this.checkGameOver();
       }
-    }
 
-    // 4. Solid Obstacles (Level 3 wood trunks) vs Player Dragon
-    for (const obst of this.obstacles) {
-      const oBox = obst.getBoundingBox();
-      if (this.checkAABB(oBox, playerBox)) {
-        // Timber/leaf smash feedback
-        this.particles.emitExplosion(this.playerDragon.x + 10, this.playerDragon.y, 0x4f7c46, 12);
-        this.triggerShake(18, 15);
+      // 3. Enemies vs Player Dragons (Direct collisions)
+      for (let i = this.enemies.length - 1; i >= 0; i--) {
+        const enemy = this.enemies[i];
+        const eBox = enemy.getBoundingBox();
 
-        // Inflict massive crash damage
-        this.state.playerHealth = Math.max(0, this.state.playerHealth - 1.5); // continuous crash drain
-        this.checkGameOver();
+        if (this.checkAABB(eBox, playerBox)) {
+          this.particles.emitExplosion(enemy.x, enemy.y, 0xb91c1c, 15);
+          this.triggerShake(16, 12);
+
+          this.state.playersHealth[plIdx] = Math.max(0, (this.state.playersHealth[plIdx] || 0) - enemy.damage);
+          
+          if (enemy.type !== "giant_worm" && enemy.type !== "mountain_boss" && enemy.type !== "forest_boss" && enemy.type !== "sea_kraken_boss") {
+            enemy.destroy();
+            this.enemies.splice(i, 1);
+          }
+
+          this.checkGameOver();
+        }
+      }
+
+      // 4. Solid Obstacles vs Player Dragons
+      for (const obst of this.obstacles) {
+        const oBox = obst.getBoundingBox();
+        if (this.checkAABB(oBox, playerBox)) {
+          this.particles.emitExplosion(dragon.x + 10, dragon.y, 0x4f7c46, 12);
+          this.triggerShake(18, 15);
+
+          this.state.playersHealth[plIdx] = Math.max(0, (this.state.playersHealth[plIdx] || 0) - 1.5);
+          this.checkGameOver();
+        }
       }
     }
   }
@@ -725,8 +1282,11 @@ export class GameEngine {
   }
 
   private checkGameOver() {
+    this.state.playerHealth = Math.max(...this.state.playersHealth, 0);
     this.triggerStateChange();
-    if (this.state.playerHealth <= 0) {
+
+    const allDead = this.state.playersHealth.every(h => h <= 0);
+    if (allDead) {
       this.state.status = "game_over";
       this.isRunning = false;
       this.triggerStateChange();
@@ -736,40 +1296,62 @@ export class GameEngine {
   // --- PROGRESSION TRACKER ---
   private trackProgression(dt: number) {
     const level = this.state.currentLevel;
-    const config = LEVELS[level - 1];
 
     if (level === 1) {
-      // Level 1: Beat 15 enemies
-      const pct = (this.state.enemiesDefeated / config.targetProgress) * 100;
-      this.state.levelProgress = Math.min(100, Math.floor(pct));
-
-      if (this.state.levelProgress >= 100) {
-        this.completeLevel();
+      // Level 1: Enemies defeated increase progress up to 80%, then Mountain Boss at 80%
+      if (this.state.levelProgress < 80) {
+        this.state.levelProgress = Math.min(80, this.state.enemiesDefeated * 8);
+      } else {
+        // Boss fight phase!
+        if (this.bossSpawned && !this.bossRef && this.enemies.filter(e => e.type === "mountain_boss").length === 0) {
+          this.state.levelProgress = 100;
+          this.completeLevel();
+        }
       }
     } 
     else if (level === 2) {
-      // Level 2: Distance based up to 80%, then boss-defeated required to reach 100%
+      // Level 2: Distance based up to 80%, then Giant Worm Boss required
       if (this.state.levelProgress < 80) {
-        this.state.levelProgress += dt * 0.05; // slowly progress
+        this.state.levelProgress += dt * 0.05;
         if (this.state.levelProgress >= 80) {
           this.state.levelProgress = 80;
         }
       } else {
         // Boss fight phase!
         if (this.bossSpawned && !this.bossRef && this.enemies.filter(e => e.type === "giant_worm").length === 0) {
-          // Boss is dead! Progress to 100%
           this.state.levelProgress = 100;
           this.completeLevel();
         }
       }
     } 
     else if (level === 3) {
-      // Level 3: Distance survival maze
-      this.state.levelProgress += dt * 0.055;
-      this.state.levelProgress = Math.min(100, this.state.levelProgress);
-
-      if (this.state.levelProgress >= 100) {
-        this.completeLevel();
+      // Level 3: Distance based up to 80%, then Ancient Forest Ent Boss required
+      if (this.state.levelProgress < 80) {
+        this.state.levelProgress += dt * 0.055;
+        if (this.state.levelProgress >= 80) {
+          this.state.levelProgress = 80;
+        }
+      } else {
+        // Boss fight phase!
+        if (this.bossSpawned && !this.bossRef && this.enemies.filter(e => e.type === "forest_boss").length === 0) {
+          this.state.levelProgress = 100;
+          this.completeLevel();
+        }
+      }
+    }
+    else if (level === 4) {
+      // Level 4: Distance based up to 80%, then Kraken Boss required
+      if (this.state.levelProgress < 80) {
+        this.state.levelProgress += dt * 0.06;
+        if (this.state.levelProgress >= 80) {
+          this.state.levelProgress = 80;
+        }
+      } else {
+        // Boss fight phase!
+        if (this.bossSpawned && !this.bossRef && this.enemies.filter(e => e.type === "sea_kraken_boss").length === 0) {
+          this.state.levelProgress = 100;
+          this.completeLevel();
+        }
       }
     }
 
@@ -780,8 +1362,8 @@ export class GameEngine {
     this.isRunning = false;
     this.triggerShake(5, 30);
     
-    // Complete entire journey if level 3, otherwise transition
-    if (this.state.currentLevel === 3) {
+    // Complete entire journey if level 4 (final ocean level), otherwise transition
+    if (this.state.currentLevel === 4) {
       this.state.status = "victory";
     } else {
       this.state.status = "level_complete";
@@ -824,7 +1406,10 @@ export class GameEngine {
       this.clearLists();
       
       if (this.bgManager) this.bgManager.destroy();
-      if (this.playerDragon) this.playerDragon.destroy();
+      for (const d of this.playerDragons) {
+        d.destroy();
+      }
+      this.playerDragons = [];
       if (this.particles) this.particles.destroy();
       
       try {

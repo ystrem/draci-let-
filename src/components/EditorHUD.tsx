@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { GameState, DRAGONS, LEVELS } from "../types";
 import {
   Flame,
@@ -21,6 +21,10 @@ import {
   Eye,
   EyeOff,
   X,
+  ShieldOff,
+  Skull,
+  Swords,
+  Activity,
 } from "lucide-react";
 
 interface EditorHUDProps {
@@ -32,6 +36,7 @@ interface EditorHUDProps {
   onTogglePause: () => void;
   onResetGame: () => void;
   onSkipLevel: () => void;
+  onSetPlayerCount?: (count: number) => void;
 }
 
 const CHARACTERS_GALLERY = [
@@ -99,9 +104,31 @@ const CHARACTERS_GALLERY = [
     )
   },
   {
+    id: "mountain_boss",
+    name: "Vládce Bouřných Štítů",
+    role: "Boss 1. Biomu",
+    biome: "1. Biom: Kixskuske hory",
+    description: "Kolosální bouřný drak s obřími azurovými křídly a bleskovými rohy. Chrlí plazmové paprsky a vysílá 8-směrné bouřkové orby.",
+    badgeColor: "bg-cyan-500/20 text-cyan-400 border-cyan-500/40",
+    renderSvg: () => (
+      <svg viewBox="0 0 100 70" className="w-16 h-12">
+        <g>
+          <path d="M50 35 L85 5 L95 20 L75 35 Z" fill="#06b6d4" className="animate-pulse" />
+          <ellipse cx="50" cy="40" rx="25" ry="14" fill="#1e1b4b" />
+          <ellipse cx="45" cy="45" rx="18" ry="8" fill="#38bdf8" />
+          <path d="M35 30 L10 15 L5 30 L25 42 Z" fill="#1e1b4b" />
+          <polygon points="20,20 5,0 15,18" fill="#fef08a" />
+          <circle cx="18" cy="24" r="3" fill="#22d3ee" />
+          <path d="M75 40 Q95 50 100 35" stroke="#1e1b4b" strokeWidth="4" fill="none" />
+          <circle cx="100" cy="35" r="5" fill="#06b6d4" />
+        </g>
+      </svg>
+    )
+  },
+  {
     id: "giant_worm",
     name: "Obří Písečný Červ",
-    role: "Hlavní Boss",
+    role: "Boss 2. Biomu",
     biome: "2. Biom: Poušť Bojli",
     description: "Monstrózní červ s 9 články, otevírající se tlamou s bílými tesáky a mnoha červenými očima. Vynořuje se svisle z dun.",
     badgeColor: "bg-orange-500/20 text-orange-400 border-orange-500/40",
@@ -127,7 +154,7 @@ const CHARACTERS_GALLERY = [
     name: "Lesní Trpaslík",
     role: "Pěšák s trny",
     biome: "3. Biom: Masivní les",
-    description: "Trpaslík v červené kapuci stojící na kořenech stromů. Vystřeluje obloukové dřevěné trny směrem k drakovi.",
+    description: "Trpaslík v červené kapuci stojící na kořenech stromů. Vystřeluje obloukové dřevěné trny a výbušné bomby.",
     badgeColor: "bg-rose-500/20 text-rose-400 border-rose-500/40",
     renderSvg: () => (
       <svg viewBox="0 0 60 60" className="w-12 h-12">
@@ -140,8 +167,299 @@ const CHARACTERS_GALLERY = [
         </g>
       </svg>
     )
+  },
+  {
+    id: "forest_boss",
+    name: "Prastarý Lesní Gigant",
+    role: "Boss 3. Biomu",
+    biome: "3. Biom: Masivní les",
+    description: "Mocný lesní treant z prastarého dubového dřeva a mechové koruny s zářícími jantarovými runami. Vrhá těžké kmeny a naváděné spory.",
+    badgeColor: "bg-emerald-500/20 text-emerald-400 border-emerald-500/40",
+    renderSvg: () => (
+      <svg viewBox="0 0 80 70" className="w-16 h-12">
+        <g>
+          <circle cx="40" cy="20" r="18" fill="#15803d" />
+          <circle cx="22" cy="25" r="14" fill="#166534" />
+          <circle cx="58" cy="25" r="14" fill="#166534" />
+          <polygon points="20,60 15,35 40,25 65,35 60,60" fill="#3f2305" />
+          <circle cx="30" cy="38" r="3" fill="#f59e0b" />
+          <circle cx="50" cy="38" r="3" fill="#f59e0b" />
+          <circle cx="10" cy="45" r="8" fill="#3f2305" />
+          <circle cx="70" cy="45" r="8" fill="#3f2305" />
+        </g>
+      </svg>
+    )
+  },
+  {
+    id: "sea_jelly",
+    name: "Svítící Medúzka",
+    role: "Podmořský minion",
+    biome: "4. Biom: Mořské hlubiny",
+    description: "Svítící bioluminiscenční medúza s plovoucími chapadly. Vznáší se ve vodě a střílí elektrické bublinové projektily.",
+    badgeColor: "bg-cyan-500/20 text-cyan-300 border-cyan-500/40",
+    renderSvg: () => (
+      <svg viewBox="0 0 60 60" className="w-12 h-12">
+        <g className="animate-pulse">
+          <ellipse cx="30" cy="22" rx="18" ry="14" fill="#06b6d4" opacity="0.85" />
+          <ellipse cx="25" cy="18" rx="6" ry="3" fill="#67e8f9" />
+          <circle cx="30" cy="24" r="5" fill="#a5f3fc" />
+          <path d="M18 34 Q22 46 16 56 M24 34 Q28 46 22 56 M30 34 Q34 46 28 56 M36 34 Q40 46 34 56 M42 34 Q46 46 40 56" stroke="#38bdf8" strokeWidth="2" fill="none" />
+        </g>
+      </svg>
+    )
+  },
+  {
+    id: "sea_piranha",
+    name: "Zubatá Piraňa",
+    role: "Rychlý plavec",
+    biome: "4. Biom: Mořské hlubiny",
+    description: "Agresivní dravá ryba s velkou zubatou tlamou a zářícím žlutým okem. Rychle kmitá napříč hlubinami.",
+    badgeColor: "bg-purple-500/20 text-purple-300 border-purple-500/40",
+    renderSvg: () => (
+      <svg viewBox="0 0 70 50" className="w-14 h-10">
+        <g>
+          <ellipse cx="35" cy="25" rx="22" ry="14" fill="#1e1b4b" />
+          <ellipse cx="38" cy="27" rx="16" ry="9" fill="#c026d3" />
+          <polygon points="57,25 67,14 62,25 67,36" fill="#ec4899" />
+          <circle cx="23" cy="20" r="4" fill="#facc15" />
+          <circle cx="22" cy="20" r="2" fill="#000000" />
+          <polygon points="18,25 10,30 14,27 10,35" fill="#ffffff" />
+        </g>
+      </svg>
+    )
+  },
+  {
+    id: "sea_serpent",
+    name: "Hlubinný Had",
+    role: "Elektrický serpenoid",
+    biome: "4. Biom: Mořské hlubiny",
+    description: "Dlouhý mořský drak složený ze článků s modrými ploutvemi. Vlní se vodními proudy a chrlí energetické plazmové proudy.",
+    badgeColor: "bg-sky-500/20 text-sky-300 border-sky-500/40",
+    renderSvg: () => (
+      <svg viewBox="0 0 90 40" className="w-16 h-10">
+        <g className="animate-pulse">
+          <circle cx="20" cy="20" r="10" fill="#0284c7" />
+          <circle cx="16" cy="17" r="2.5" fill="#38bdf8" />
+          <polygon points="22,10 30,2 24,14" fill="#38bdf8" />
+          <circle cx="34" cy="22" r="8" fill="#0369a1" />
+          <circle cx="47" cy="18" r="7" fill="#075985" />
+          <circle cx="58" cy="22" r="6" fill="#0c4a6e" />
+          <circle cx="68" cy="20" r="4" fill="#082f49" />
+        </g>
+      </svg>
+    )
+  },
+  {
+    id: "sea_kraken_boss",
+    name: "Pravěký Kraken z hlubin",
+    role: "Boss 4. Biomu",
+    biome: "4. Biom: Mořské hlubiny",
+    description: "Obří pravěké mořské monstrum se svíjejícími se chapadly, velkýma zářícíma jantarovýma očima a ostnatou korunou. Chrlí vodní smrště, inkoustové bomby a 10-směrnou vodní sprchu.",
+    badgeColor: "bg-indigo-500/20 text-indigo-300 border-indigo-500/40",
+    renderSvg: () => (
+      <svg viewBox="0 0 90 80" className="w-16 h-14">
+        <g>
+          <circle cx="20" cy="20" r="12" fill="#1e1b4b" />
+          <circle cx="70" cy="20" r="12" fill="#1e1b4b" />
+          <circle cx="15" cy="60" r="12" fill="#1e1b4b" />
+          <circle cx="75" cy="60" r="12" fill="#1e1b4b" />
+          <ellipse cx="45" cy="35" rx="26" ry="20" fill="#312e81" />
+          <ellipse cx="45" cy="30" rx="20" ry="14" fill="#4338ca" />
+          <polygon points="25,20 35,5 40,20" fill="#6366f1" />
+          <polygon points="65,20 55,5 50,20" fill="#6366f1" />
+          <circle cx="33" cy="32" r="5" fill="#f59e0b" />
+          <circle cx="57" cy="32" r="5" fill="#f59e0b" />
+          <polygon points="38,45 45,55 52,45" fill="#020617" />
+        </g>
+      </svg>
+    )
   }
 ];
+
+const BossHealthBar: React.FC<{ bossHealth: number; bossMaxHealth: number; level: number }> = ({
+  bossHealth,
+  bossMaxHealth,
+  level,
+}) => {
+  const [shatterAlert, setShatterAlert] = useState<string | null>(null);
+  const [prevSegments, setPrevSegments] = useState<number>(4);
+
+  const totalSegments = 4;
+  const healthPct = Math.max(0, Math.min(100, (bossHealth / bossMaxHealth) * 100));
+  const currentSegments = Math.ceil((healthPct / 100) * totalSegments);
+
+  // Detect threshold shatter
+  useEffect(() => {
+    if (prevSegments > currentSegments && bossHealth > 0) {
+      setShatterAlert(`ŠTÍT PROLOMEN! FÁZE ${currentSegments}/${totalSegments}`);
+      const timer = setTimeout(() => setShatterAlert(null), 1800);
+      setPrevSegments(currentSegments);
+      return () => clearTimeout(timer);
+    } else if (prevSegments < currentSegments) {
+      setPrevSegments(currentSegments);
+    }
+  }, [currentSegments, bossHealth, prevSegments]);
+
+  // Biome specific styling
+  const bossDetails = {
+    1: {
+      name: "Vládce Bouřných Štítů",
+      title: "Bouřný Dron Titan",
+      gradient: "from-cyan-400 via-sky-500 to-indigo-600",
+      glowColor: "border-cyan-500/50 shadow-[0_0_20px_rgba(6,182,212,0.3)]",
+      bgOverlay: "bg-cyan-950/90",
+      textColor: "text-cyan-300",
+      icon: <Zap className="w-4 h-4 text-cyan-400 animate-bounce" />,
+    },
+    2: {
+      name: "Obří Písečný Červ",
+      title: "Monstrum Písečných Dun",
+      gradient: "from-amber-400 via-orange-500 to-rose-600",
+      glowColor: "border-orange-500/50 shadow-[0_0_20px_rgba(249,115,22,0.3)]",
+      bgOverlay: "bg-orange-950/90",
+      textColor: "text-amber-300",
+      icon: <Flame className="w-4 h-4 text-orange-400 animate-bounce" />,
+    },
+    3: {
+      name: "Prastarý Lesní Gigant",
+      title: "Prastarý Treant Strážce",
+      gradient: "from-emerald-400 via-teal-500 to-amber-600",
+      glowColor: "border-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.3)]",
+      bgOverlay: "bg-emerald-950/90",
+      textColor: "text-emerald-300",
+      icon: <Swords className="w-4 h-4 text-emerald-400 animate-bounce" />,
+    },
+    4: {
+      name: "Pravěký Kraken z hlubin",
+      title: "Vládce Nekonečného Oceánu",
+      gradient: "from-cyan-400 via-indigo-500 to-purple-600",
+      glowColor: "border-indigo-500/50 shadow-[0_0_20px_rgba(99,102,241,0.4)]",
+      bgOverlay: "bg-indigo-950/90",
+      textColor: "text-cyan-300",
+      icon: <Skull className="w-4 h-4 text-cyan-400 animate-bounce" />,
+    },
+  }[level] || {
+    name: "Mocný Boss",
+    title: "Strážce Biomu",
+    gradient: "from-rose-500 via-amber-500 to-red-600",
+    glowColor: "border-rose-500/50 shadow-[0_0_20px_rgba(244,63,94,0.3)]",
+    bgOverlay: "bg-rose-950/90",
+    textColor: "text-rose-300",
+    icon: <Skull className="w-4 h-4 text-rose-400 animate-bounce" />,
+  };
+
+  return (
+    <div
+      id="boss-warning-hud"
+      className={`self-center max-w-xl w-full ${bossDetails.bgOverlay} p-3.5 rounded-2xl border ${bossDetails.glowColor} backdrop-blur-md flex flex-col gap-2 pointer-events-auto mt-2 shadow-2xl relative overflow-hidden transition-all duration-300`}
+    >
+      {/* Shatter Alert Banner Overlay */}
+      {shatterAlert && (
+        <div className="absolute inset-0 z-20 bg-rose-600/95 flex items-center justify-center gap-2 text-white font-black text-xs uppercase tracking-widest animate-pulse backdrop-blur-xs">
+          <ShieldOff className="w-5 h-5 animate-spin" />
+          <span>{shatterAlert}</span>
+          <Sparkles className="w-5 h-5 animate-pulse" />
+        </div>
+      )}
+
+      {/* Header Info */}
+      <div className="flex justify-between items-center text-xs">
+        <div className="flex items-center gap-2">
+          {bossDetails.icon}
+          <div className="flex flex-col">
+            <span className={`font-black tracking-wider uppercase text-xs ${bossDetails.textColor} flex items-center gap-1.5`}>
+              {bossDetails.name}
+            </span>
+            <span className="text-[10px] text-slate-400 font-medium">
+              {bossDetails.title}
+            </span>
+          </div>
+        </div>
+
+        {/* Phase & Health details */}
+        <div className="flex items-center gap-3">
+          {/* Phase Shield Icons */}
+          <div className="flex items-center gap-1.5 bg-slate-950/70 px-2.5 py-1 rounded-xl border border-slate-800/80">
+            {Array.from({ length: totalSegments }).map((_, idx) => {
+              const isIntact = idx < currentSegments;
+              return (
+                <span key={idx} title={`Štít ${idx + 1}`} className="transition-all duration-300">
+                  {isIntact ? (
+                    <Shield className="w-3.5 h-3.5 fill-amber-400 text-amber-300 drop-shadow-[0_0_5px_rgba(251,191,36,0.9)]" />
+                  ) : (
+                    <ShieldOff className="w-3.5 h-3.5 text-rose-600 opacity-60 scale-90" />
+                  )}
+                </span>
+              );
+            })}
+            <span className="text-[10px] font-mono font-black text-amber-400 ml-1">
+              FÁZE {Math.max(1, currentSegments)}/4
+            </span>
+          </div>
+
+          <div className="text-right">
+            <span className="font-mono text-xs font-black text-white">
+              {Math.floor(bossHealth)} <span className="text-[10px] text-slate-400">/ {bossMaxHealth}</span>
+            </span>
+            <span className={`block text-[10px] font-mono font-bold ${bossDetails.textColor}`}>
+              {Math.ceil(healthPct)}% HP
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Segmented Health Bar */}
+      <div className="grid grid-cols-4 gap-2 w-full h-4 bg-slate-950/90 p-0.5 rounded-xl border border-slate-800/80 relative">
+        {Array.from({ length: totalSegments }).map((_, segIdx) => {
+          // Calculate percentage fill for this specific segment (0 to 100%)
+          const segMin = segIdx * 25;
+          const segMax = (segIdx + 1) * 25;
+          let fillPct = 0;
+          if (healthPct >= segMax) {
+            fillPct = 100;
+          } else if (healthPct <= segMin) {
+            fillPct = 0;
+          } else {
+            fillPct = ((healthPct - segMin) / 25) * 100;
+          }
+
+          const isShattered = healthPct <= segMin;
+
+          return (
+            <div
+              key={segIdx}
+              className={`h-full rounded-lg relative overflow-hidden transition-all duration-200 ${
+                isShattered
+                  ? "bg-rose-950/40 border border-dashed border-rose-800/70 shadow-inner"
+                  : "bg-slate-900/90 border border-slate-800/80"
+              }`}
+            >
+              {/* Active Health Fill */}
+              {fillPct > 0 && (
+                <div
+                  className={`h-full bg-gradient-to-r ${bossDetails.gradient} transition-all duration-150 rounded-md relative shadow-[0_0_10px_rgba(244,63,94,0.5)]`}
+                  style={{ width: `${fillPct}%` }}
+                >
+                  {/* Glossy shine highlight */}
+                  <div className="absolute inset-x-0 top-0 h-1/2 bg-white/25 rounded-t-md" />
+                </div>
+              )}
+
+              {/* Shattered Crack Overlay */}
+              {isShattered && (
+                <div className="absolute inset-0 flex items-center justify-center opacity-80">
+                  <svg className="w-full h-full text-rose-500/60" viewBox="0 0 40 10">
+                    <path d="M0,5 L12,2 L22,8 L32,3 L40,6" stroke="currentColor" strokeWidth="1.2" fill="none" strokeDasharray="1.5 1.5" />
+                  </svg>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
 
 export const EditorHUD: React.FC<EditorHUDProps> = ({
   containerRef,
@@ -152,6 +470,7 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
   onTogglePause,
   onResetGame,
   onSkipLevel,
+  onSetPlayerCount,
 }) => {
   const [showCharactersModal, setShowCharactersModal] = useState(false);
   const [hideMenuOverlay, setHideMenuOverlay] = useState(false);
@@ -268,10 +587,10 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
           <button
             id="btn-reset"
             onClick={onResetGame}
-            className="p-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs text-slate-300 transition"
-            title="Resetovat hru"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 font-bold text-xs transition"
+            title="Restartovat celou hru do začátku"
           >
-            <RotateCcw className="w-3.5 h-3.5" />
+            <RotateCcw className="w-3.5 h-3.5" /> Restart celé hry
           </button>
         </div>
       </header>
@@ -288,9 +607,9 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
               <div className="w-16 h-16 rounded-full bg-rose-500/10 border border-rose-500 flex items-center justify-center mb-4 animate-bounce">
                 <AlertTriangle className="w-8 h-8 text-rose-500" />
               </div>
-              <h2 className="text-3xl font-extrabold text-rose-500 tracking-tight uppercase mb-2">Drak poražen!</h2>
+              <h2 className="text-3xl font-extrabold text-rose-500 tracking-tight uppercase mb-2">Všichni drakové poraženi!</h2>
               <p className="text-slate-400 max-w-md text-sm mb-6 leading-relaxed">
-                Váš drak padl v boji. Biomy jsou nebezpečné, ale váš duch je nezlomný. Upravte parametry rychlosti a střelby draka v panelu editoru a získejte výhodu!
+                Vaši drakové padli v boji. Biomy jsou nebezpečné, ale váš duch je nezlomný! Zrestartujte hru nebo upravte parametry draků.
               </p>
               <div className="flex gap-4">
                 <button
@@ -298,14 +617,14 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
                   onClick={() => onStartLevel(gameState.currentLevel)}
                   className="px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-rose-500 text-slate-950 font-bold hover:brightness-110 transition flex items-center gap-2 text-sm shadow-lg shadow-amber-500/20"
                 >
-                  <RotateCcw className="w-4 h-4" /> Zkusit biom znovu
+                  <RotateCcw className="w-4 h-4" /> Opakovat biom
                 </button>
                 <button
                   id="btn-main-menu"
                   onClick={onResetGame}
-                  className="px-6 py-3 rounded-xl bg-slate-900 hover:bg-slate-850 text-white font-semibold transition border border-slate-800 text-sm"
+                  className="px-6 py-3 rounded-xl bg-slate-900 hover:bg-slate-850 text-amber-400 font-bold transition border border-slate-800 text-sm flex items-center gap-2"
                 >
-                  Hlavní menu
+                  <RotateCcw className="w-4 h-4" /> Restart celé hry
                 </button>
               </div>
             </div>
@@ -320,7 +639,7 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
               <h2 className="text-3xl font-extrabold text-emerald-400 tracking-tight uppercase mb-1">Biom úspěšně zdolán!</h2>
               <p className="text-amber-400 text-sm font-semibold mb-3">{currentLevelConfig.title}</p>
               <p className="text-slate-400 max-w-md text-sm mb-6 leading-relaxed">
-                Úspěšně jste překonali veškerá nebezpečí. Síla vašeho draka roste! Připravte se na další výzvu.
+                Úspěšně jste překonali veškerá nebezpečí. Síla vašich draků roste! Připravte se na další výzvu.
               </p>
               <div className="bg-slate-900/60 border border-slate-800/60 rounded-xl p-4 mb-6 min-w-xs grid grid-cols-2 gap-4">
                 <div className="text-center">
@@ -332,13 +651,22 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
                   <div className="text-xl font-bold text-amber-400">{gameState.currentLevel + 1}. úroveň</div>
                 </div>
               </div>
-              <button
-                id="btn-next-level"
-                onClick={() => onStartLevel(gameState.currentLevel + 1)}
-                className="px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold hover:brightness-110 transition flex items-center gap-2 text-sm shadow-lg shadow-emerald-500/20"
-              >
-                Postoupit do dalšího biomu <SkipForward className="w-4 h-4" />
-              </button>
+              <div className="flex gap-4">
+                <button
+                  id="btn-next-level"
+                  onClick={() => onStartLevel(gameState.currentLevel + 1)}
+                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold hover:brightness-110 transition flex items-center gap-2 text-sm shadow-lg shadow-emerald-500/20"
+                >
+                  Postoupit do dalšího biomu <SkipForward className="w-4 h-4" />
+                </button>
+                <button
+                  id="btn-restart-from-complete"
+                  onClick={onResetGame}
+                  className="px-4 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 font-semibold transition border border-slate-800 text-sm"
+                >
+                  Restart hry
+                </button>
+              </div>
             </div>
           )}
 
@@ -348,10 +676,10 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
               <div className="w-16 h-16 rounded-full bg-amber-500/10 border border-amber-500 flex items-center justify-center mb-4">
                 <Trophy className="w-8 h-8 text-amber-400" />
               </div>
-              <h2 className="text-4xl font-extrabold text-amber-400 tracking-tight uppercase mb-1">Velký útěk!</h2>
+              <h2 className="text-4xl font-extrabold text-amber-400 tracking-tight uppercase mb-1">Velký vítězný let!</h2>
               <p className="text-slate-300 font-semibold mb-3">Všechny biomy dokončeny</p>
               <p className="text-slate-400 max-w-md text-sm mb-6 leading-relaxed">
-                Gratulujeme! Úspěšně jste provedli svého draka všemi nebezpečnými krajinami – od bouřlivých vrcholů Kixskuských hor přes duny pouště Bojli až po křivolaké houštiny Masivního lesa.
+                Gratulujeme! Úspěšně jste provedli tým draků všemi nebezpečnými krajinami – od bouřlivých vrcholů Kixskuských hor přes duny pouště Bojli až po křivolaké houštiny Masivního lesa.
               </p>
               <div className="bg-amber-950/20 border border-amber-500/20 rounded-xl p-5 mb-8 min-w-xs">
                 <div className="text-xs text-amber-500 uppercase tracking-wider font-bold mb-1">Dosažené finální skóre</div>
@@ -362,7 +690,7 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
                 onClick={onResetGame}
                 className="px-8 py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-rose-500 text-slate-950 font-black hover:brightness-110 transition flex items-center gap-2 text-sm shadow-lg shadow-amber-500/35"
               >
-                <RotateCcw className="w-4 h-4" /> Vydat se na novou pouť
+                <RotateCcw className="w-4 h-4" /> Restartovat hru od začátku
               </button>
             </div>
           )}
@@ -376,22 +704,22 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
                     onClick={() => setHideMenuOverlay(false)}
                     className="px-4 py-2 rounded-xl bg-slate-900/90 border border-slate-700 text-amber-400 font-bold text-xs hover:bg-slate-800 transition flex items-center gap-2 shadow-xl backdrop-blur-md"
                   >
-                    <Eye className="w-4 h-4" /> Zobrazit nabídku a výběr draků
+                    <Eye className="w-4 h-4" /> Zobrazit nabídku a nastavení hráčů
                   </button>
                 </div>
               ) : (
-                <div id="overlay-menu" className="absolute inset-0 z-40 bg-slate-950/80 backdrop-blur-md flex flex-col justify-between p-6 overflow-y-auto">
+                <div id="overlay-menu" className="absolute inset-0 z-40 bg-slate-950/50 backdrop-blur-xs flex flex-col justify-between p-6 overflow-y-auto">
                   <div>
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                       <div>
                         <span className="text-xs font-bold uppercase tracking-widest text-amber-500 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">
-                          Vyberte si svého draka ochránce
+                          Multiplayer až pro 4 hráče
                         </span>
                         <h2 className="text-3xl font-extrabold text-white tracking-tight uppercase mt-2 mb-1">
-                          Zvolte si svůj element
+                          Nastavení hráčů & Ovládání
                         </h2>
                         <p className="text-slate-400 text-xs md:text-sm leading-relaxed max-w-xl">
-                          Animovaný drak létá přímo na pozadí! Vyberte si element, prohlédněte si postavičky a spusťte hru.
+                          Hrajte sami nebo až ve 4 hráčích současně! Ovládejte z klávesnice nebo připojte Gamepady.
                         </p>
                       </div>
 
@@ -400,61 +728,113 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
                           onClick={() => setShowCharactersModal(true)}
                           className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 text-xs font-bold transition flex items-center gap-2 shadow-md"
                         >
-                          <Users className="w-4 h-4 text-amber-400" /> Galerie postaviček
+                          <Users className="w-4 h-4 text-amber-400" /> Galerie postav
                         </button>
                         <button
                           onClick={() => setHideMenuOverlay(true)}
                           className="px-4 py-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 text-xs font-medium transition flex items-center gap-2"
-                          title="Skrýt menu a sledovat animovaného draka na pozadí"
+                          title="Skrýt menu a sledovat animované draky na pozadí"
                         >
                           <EyeOff className="w-4 h-4" /> Živý náhled
                         </button>
                       </div>
                     </div>
 
+                    {/* Player Count Selection Buttons */}
+                    <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 mb-6">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                          <Users className="w-4 h-4" /> Počet hráčů ve hře:
+                        </span>
+                        <span className="text-xs font-semibold text-slate-300">
+                          Aktivní: <strong className="text-amber-400">{gameState.playerCount} {gameState.playerCount === 1 ? "hráč" : gameState.playerCount < 5 ? "hráči" : "hráčů"}</strong>
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {[1, 2, 3, 4].map((count) => {
+                          const isActive = gameState.playerCount === count;
+                          return (
+                            <button
+                              key={count}
+                              onClick={() => onSetPlayerCount?.(count)}
+                              className={`py-3 px-4 rounded-xl border text-center transition-all duration-200 font-bold text-sm flex flex-col items-center gap-1 ${
+                                isActive
+                                  ? "bg-amber-500 text-slate-950 border-amber-400 shadow-lg shadow-amber-500/20 scale-102"
+                                  : "bg-slate-950 border-slate-800 text-slate-300 hover:bg-slate-850 hover:border-slate-700"
+                              }`}
+                            >
+                              <span>{count} {count === 1 ? "Hráč" : count < 5 ? "Hráči" : "Hráčů"}</span>
+                              <span className={`text-[10px] font-normal ${isActive ? "text-slate-900" : "text-slate-500"}`}>
+                                {count === 1 ? "1 Drak" : `${count} Drakové`}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="mb-3 text-xs font-bold text-slate-300 uppercase tracking-wider">
+                      Výběr draka pro Hráče 1:
+                    </div>
                     {renderDragonSelector()}
 
-                    {/* Quick Characters Preview Bar */}
-                    <div className="bg-slate-900/50 border border-slate-800/80 rounded-xl p-4 mb-6">
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-                          <Users className="w-4 h-4" /> Animované postavičky a monstra ve hře
-                        </h4>
-                        <button
-                          onClick={() => setShowCharactersModal(true)}
-                          className="text-[11px] text-slate-400 hover:text-amber-400 underline font-medium"
-                        >
-                          Zobrazit detailní galerii &rarr;
-                        </button>
-                      </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-                        {CHARACTERS_GALLERY.map((char) => (
-                          <div
-                            key={char.id}
-                            onClick={() => setShowCharactersModal(true)}
-                            className="bg-slate-950/60 border border-slate-800/80 hover:border-slate-700 rounded-lg p-2.5 flex flex-col items-center text-center cursor-pointer transition-all hover:scale-105"
-                          >
-                            <div className="mb-1">
-                              {char.id === "dragon"
-                                ? char.renderSvg(gameState.dragonConfig.colorHex)
-                                : char.renderSvg(gameState.dragonConfig.colorHex)}
-                            </div>
-                            <div className="text-[11px] font-bold text-slate-200 leading-tight">{char.name}</div>
-                            <div className="text-[9px] text-slate-400 mt-0.5">{char.role}</div>
+                    {/* Multi-Player Controls Guide Panel */}
+                    <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 mb-6">
+                      <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <HelpCircle className="w-4 h-4" /> Ovládání z počítače & Gamepadů (Různé Útoky)
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                        <div className="bg-slate-950/80 p-3 rounded-lg border border-slate-800">
+                          <div className="font-bold text-rose-400 mb-1">1. Hráč (Trojitý výstřel)</div>
+                          <div className="text-[11px] text-slate-400 space-y-1">
+                            <div>Pohyb: <kbd className="px-1 py-0.5 rounded bg-slate-900 border border-slate-800 font-mono text-white text-[10px]">W A S D</kbd> / Šipky</div>
+                            <div>Útok: <kbd className="px-1 py-0.5 rounded bg-slate-900 border border-slate-800 font-mono text-white text-[10px]">MEZERNÍK</kbd> / <kbd className="px-1 py-0.5 rounded bg-slate-900 border border-slate-800 font-mono text-white text-[10px]">F</kbd></div>
+                            <div className="text-amber-400">Speciál (Nova): <kbd className="px-1 py-0.5 rounded bg-slate-900 border border-slate-800 font-mono text-amber-300 text-[10px]">E</kbd> / <kbd className="px-1 py-0.5 rounded bg-slate-900 border border-slate-800 font-mono text-amber-300 text-[10px]">Q</kbd> / <kbd className="px-1 py-0.5 rounded bg-slate-900 border border-slate-800 font-mono text-amber-300 text-[10px]">Shift</kbd></div>
+                            <div className="text-amber-400/90 text-[10px]">Gamepad 1: A/RB (Útok) | Y/RT (Super Nova)</div>
                           </div>
-                        ))}
+                        </div>
+
+                        <div className="bg-slate-950/80 p-3 rounded-lg border border-slate-800">
+                          <div className="font-bold text-sky-400 mb-1">2. Hráč (Plazmová Vlna)</div>
+                          <div className="text-[11px] text-slate-400 space-y-1">
+                            <div>Pohyb: <kbd className="px-1 py-0.5 rounded bg-slate-900 border border-slate-800 font-mono text-white text-[10px]">ŠIPKY</kbd></div>
+                            <div>Útok: <kbd className="px-1 py-0.5 rounded bg-slate-900 border border-slate-800 font-mono text-white text-[10px]">ENTER</kbd> / <kbd className="px-1 py-0.5 rounded bg-slate-900 border border-slate-800 font-mono text-white text-[10px]">SHIFT</kbd></div>
+                            <div className="text-amber-400">Speciál (Nova): <kbd className="px-1 py-0.5 rounded bg-slate-900 border border-slate-800 font-mono text-amber-300 text-[10px]">Del</kbd> / <kbd className="px-1 py-0.5 rounded bg-slate-900 border border-slate-800 font-mono text-amber-300 text-[10px]">Numpad .</kbd></div>
+                            <div className="text-amber-400/90 text-[10px]">Gamepad 2: A/RB (Útok) | Y/RT (Super Nova)</div>
+                          </div>
+                        </div>
+
+                        <div className="bg-slate-950/80 p-3 rounded-lg border border-slate-800">
+                          <div className="font-bold text-emerald-400 mb-1">3. Hráč (Trojitá Kyselina)</div>
+                          <div className="text-[11px] text-slate-400 space-y-1">
+                            <div>Pohyb: <kbd className="px-1 py-0.5 rounded bg-slate-900 border border-slate-800 font-mono text-white text-[10px]">I K J L</kbd></div>
+                            <div>Útok: <kbd className="px-1 py-0.5 rounded bg-slate-900 border border-slate-800 font-mono text-white text-[10px]">O</kbd> / <kbd className="px-1 py-0.5 rounded bg-slate-900 border border-slate-800 font-mono text-white text-[10px]">U</kbd></div>
+                            <div className="text-amber-400">Speciál (Nova): <kbd className="px-1 py-0.5 rounded bg-slate-900 border border-slate-800 font-mono text-amber-300 text-[10px]">P</kbd> / <kbd className="px-1 py-0.5 rounded bg-slate-900 border border-slate-800 font-mono text-amber-300 text-[10px]">Y</kbd></div>
+                            <div className="text-amber-400/90 text-[10px]">Gamepad 3: A/RB (Útok) | Y/RT (Super Nova)</div>
+                          </div>
+                        </div>
+
+                        <div className="bg-slate-950/80 p-3 rounded-lg border border-slate-800">
+                          <div className="font-bold text-amber-400 mb-1">4. Hráč (Laserový Paprsek)</div>
+                          <div className="text-[11px] text-slate-400 space-y-1">
+                            <div>Pohyb: <kbd className="px-1 py-0.5 rounded bg-slate-900 border border-slate-800 font-mono text-white text-[10px]">Numpad 8 5 4 6</kbd></div>
+                            <div>Útok: <kbd className="px-1 py-0.5 rounded bg-slate-900 border border-slate-800 font-mono text-white text-[10px]">NumpadEnter</kbd></div>
+                            <div className="text-amber-400">Speciál (Nova): <kbd className="px-1 py-0.5 rounded bg-slate-900 border border-slate-800 font-mono text-amber-300 text-[10px]">Numpad 3</kbd> / <kbd className="px-1 py-0.5 rounded bg-slate-900 border border-slate-800 font-mono text-amber-300 text-[10px]">M</kbd></div>
+                            <div className="text-amber-400/90 text-[10px]">Gamepad 4: A/RB (Útok) | Y/RT (Super Nova)</div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
 
                   <div className="border-t border-slate-900/90 pt-4 flex flex-col md:flex-row items-center justify-between gap-4 mt-auto">
-                    <div className="flex items-center gap-4 text-xs text-slate-400">
-                      <div className="flex items-center gap-1.5">
-                        <kbd className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 font-mono text-[10px]">WASD</kbd> / <kbd className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 font-mono text-[10px]">ŠIPKY</kbd> Let
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <kbd className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 font-mono text-[10px]">MEZERNÍK</kbd> Střelba
-                      </div>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={onResetGame}
+                        className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-400 border border-slate-800 text-xs font-bold transition flex items-center gap-1.5"
+                      >
+                        <RotateCcw className="w-4 h-4" /> Restart celé hry
+                      </button>
                     </div>
 
                     <button
@@ -462,68 +842,12 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
                       onClick={() => onStartLevel(1)}
                       className="w-full md:w-auto px-10 py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-rose-500 text-slate-950 font-black hover:brightness-110 transition flex items-center justify-center gap-2 text-sm shadow-lg shadow-amber-500/25 uppercase tracking-wider"
                     >
-                      <Play className="w-4 h-4" /> Zahájit dračí pouť
+                      <Play className="w-4 h-4" /> Spustit hru ({gameState.playerCount} {gameState.playerCount === 1 ? "Hráč" : "Hráči"})
                     </button>
                   </div>
                 </div>
               )}
             </>
-          )}
-
-          {/* Character Gallery Modal */}
-          {showCharactersModal && (
-            <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-3xl w-full shadow-2xl relative my-8">
-                <button
-                  onClick={() => setShowCharactersModal(false)}
-                  className="absolute top-4 right-4 p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-
-                <div className="flex items-center gap-2 mb-1">
-                  <Users className="w-6 h-6 text-amber-400" />
-                  <h2 className="text-2xl font-black text-white uppercase tracking-tight">Galerie animovaných postaviček</h2>
-                </div>
-                <p className="text-slate-400 text-xs mb-6">
-                  Přehled všech 2D animovaných postav a monster, které potkáte během své pouti napříč biomy.
-                </p>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto pr-2">
-                  {CHARACTERS_GALLERY.map((char) => (
-                    <div
-                      key={char.id}
-                      className="bg-slate-950/80 border border-slate-800/80 rounded-xl p-4 flex gap-4 items-start hover:border-slate-700 transition"
-                    >
-                      <div className="p-2 rounded-lg bg-slate-900 border border-slate-800 shrink-0 flex items-center justify-center min-w-[70px] min-h-[70px]">
-                        {char.id === "dragon"
-                          ? char.renderSvg(gameState.dragonConfig.colorHex)
-                          : char.renderSvg(gameState.dragonConfig.colorHex)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <h3 className="font-bold text-white text-sm">{char.name}</h3>
-                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${char.badgeColor}`}>
-                            {char.role}
-                          </span>
-                        </div>
-                        <div className="text-[10px] text-amber-400/90 font-medium mb-1.5">{char.biome}</div>
-                        <p className="text-xs text-slate-400 leading-relaxed">{char.description}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-6 pt-4 border-t border-slate-800 flex justify-end">
-                  <button
-                    onClick={() => setShowCharactersModal(false)}
-                    className="px-6 py-2.5 rounded-xl bg-amber-500 text-slate-950 font-bold hover:bg-amber-400 transition text-xs"
-                  >
-                    Zpět do výběru
-                  </button>
-                </div>
-              </div>
-            </div>
           )}
 
           {/* Active Canvas Holder with Real-time Game Status overlays */}
@@ -541,25 +865,40 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
                 {/* HUD Top bar */}
                 <div className="flex items-start justify-between w-full">
                   
-                  {/* Health and Dragon Info */}
-                  <div className="flex flex-col gap-1.5 max-w-xs w-full bg-slate-950/80 p-3 rounded-xl border border-slate-900 backdrop-blur-sm pointer-events-auto">
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="font-semibold text-white flex items-center gap-1">
-                        <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
-                        {gameState.dragonConfig.name}
-                      </span>
-                      <span className="font-mono text-slate-300 text-[11px]">
-                        {Math.floor(gameState.playerHealth)} / {gameState.playerMaxHealth} HP
-                      </span>
-                    </div>
-                    {/* Progress Health Bar */}
-                    <div className="w-full h-3 rounded-full bg-slate-900 overflow-hidden border border-slate-800/60">
-                      <div
-                        id="hud-health-fill"
-                        className="h-full bg-gradient-to-r from-rose-600 to-orange-500 transition-all duration-150"
-                        style={{ width: `${Math.max(0, (gameState.playerHealth / gameState.playerMaxHealth) * 100)}%` }}
-                      />
-                    </div>
+                  {/* Health Bars for Active Players */}
+                  <div className="flex flex-col gap-2 max-w-xs w-full pointer-events-auto">
+                    {Array.from({ length: gameState.playerCount }).map((_, pIdx) => {
+                      const hp = gameState.playersHealth[pIdx] ?? 100;
+                      const maxHp = gameState.playersMaxHealth[pIdx] ?? 100;
+                      const isAlive = hp > 0;
+                      const names = ["1. Červený", "2. Modrý", "3. Zelený", "4. Žlutý"];
+                      const colors = [
+                        "from-rose-600 to-orange-500",
+                        "from-sky-600 to-blue-500",
+                        "from-emerald-600 to-teal-500",
+                        "from-amber-500 to-yellow-400"
+                      ];
+
+                      return (
+                        <div key={pIdx} className="bg-slate-950/85 p-2 px-3 rounded-xl border border-slate-900 backdrop-blur-sm flex flex-col gap-1">
+                          <div className="flex justify-between items-center text-[11px]">
+                            <span className="font-bold text-white flex items-center gap-1">
+                              <Heart className={`w-3 h-3 ${isAlive ? "text-rose-500 fill-rose-500" : "text-slate-600 fill-slate-600"}`} />
+                              {pIdx === 0 ? gameState.dragonConfig.name : names[pIdx]}
+                            </span>
+                            <span className={`font-mono text-[10px] ${isAlive ? "text-slate-300" : "text-rose-500 font-bold uppercase"}`}>
+                              {isAlive ? `${Math.floor(hp)} / ${maxHp} HP` : "PORAŽEN"}
+                            </span>
+                          </div>
+                          <div className="w-full h-2 rounded-full bg-slate-900 overflow-hidden border border-slate-800/60">
+                            <div
+                              className={`h-full bg-gradient-to-r ${colors[pIdx % colors.length]} transition-all duration-150`}
+                              style={{ width: `${Math.max(0, (hp / maxHp) * 100)}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
 
                   {/* Level Goal Description and Stats */}
@@ -595,26 +934,13 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
                   <span className="text-xs font-mono font-bold text-amber-400 shrink-0">{Math.floor(gameState.levelProgress)}%</span>
                 </div>
 
-                {/* Giant Sand Worm Boss health bar overlay (Level 2 specific) */}
-                {gameState.currentLevel === 2 && gameState.bossHealth > 0 && (
-                  <div id="boss-warning-hud" className="self-center max-w-lg w-full bg-rose-950/90 p-3 rounded-xl border border-rose-500/40 backdrop-blur-sm flex flex-col gap-1 pointer-events-auto mt-2 animate-pulse">
-                    <div className="flex justify-between items-center text-xs text-rose-200">
-                      <span className="font-extrabold tracking-wide uppercase flex items-center gap-1.5">
-                        <AlertTriangle className="w-4 h-4 text-rose-400" />
-                        Obří písečný červ
-                      </span>
-                      <span className="font-mono text-[11px] font-bold">
-                        {Math.floor(gameState.bossHealth)} / {gameState.bossMaxHealth} HP
-                      </span>
-                    </div>
-                    <div className="w-full h-2.5 rounded-full bg-rose-950 overflow-hidden border border-rose-500/20">
-                      <div
-                        id="hud-boss-fill"
-                        className="h-full bg-rose-500 transition-all duration-100"
-                        style={{ width: `${(gameState.bossHealth / gameState.bossMaxHealth) * 100}%` }}
-                      />
-                    </div>
-                  </div>
+                {/* Boss health bar overlay for all biomes */}
+                {gameState.bossHealth > 0 && (
+                  <BossHealthBar
+                    bossHealth={gameState.bossHealth}
+                    bossMaxHealth={gameState.bossMaxHealth}
+                    level={gameState.currentLevel}
+                  />
                 )}
 
               </div>
@@ -622,14 +948,22 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
 
             {/* Paused Screen */}
             {gameState.status === "playing" && gameState.isPaused && (
-              <div id="overlay-paused" className="absolute inset-0 z-35 bg-slate-950/70 flex flex-col items-center justify-center backdrop-blur-xs">
-                <h3 className="text-2xl font-black uppercase text-white tracking-widest mb-4">Hra pozastavena</h3>
-                <button
-                  onClick={onTogglePause}
-                  className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold transition flex items-center gap-2 text-xs"
-                >
-                  <Play className="w-4 h-4" /> Pokračovat ve hře
-                </button>
+              <div id="overlay-paused" className="absolute inset-0 z-35 bg-slate-950/80 flex flex-col items-center justify-center backdrop-blur-xs gap-4">
+                <h3 className="text-2xl font-black uppercase text-white tracking-widest mb-1">Hra pozastavena</h3>
+                <div className="flex gap-3">
+                  <button
+                    onClick={onTogglePause}
+                    className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold transition flex items-center gap-2 text-xs"
+                  >
+                    <Play className="w-4 h-4" /> Pokračovat
+                  </button>
+                  <button
+                    onClick={onResetGame}
+                    className="px-6 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-400 border border-slate-800 font-bold transition flex items-center gap-2 text-xs"
+                  >
+                    <RotateCcw className="w-4 h-4" /> Restart celé hry
+                  </button>
+                </div>
               </div>
             )}
 
@@ -642,6 +976,28 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
           <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-900">
             <Sliders className="w-4 h-4 text-amber-500" />
             <h2 className="font-bold text-sm uppercase tracking-wider text-slate-200">Editor dračího letu</h2>
+          </div>
+
+          {/* Quick Player Count selector in editor panel */}
+          <div className="bg-slate-900/40 rounded-xl border border-slate-900 p-4 mb-6">
+            <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-2 flex items-center gap-1.5">
+              <Users className="w-3.5 h-3.5 text-amber-400" /> Počet hráčů ({gameState.playerCount})
+            </label>
+            <div className="grid grid-cols-4 gap-1.5">
+              {[1, 2, 3, 4].map((c) => (
+                <button
+                  key={c}
+                  onClick={() => onSetPlayerCount?.(c)}
+                  className={`py-1.5 rounded-lg border text-xs font-bold transition ${
+                    gameState.playerCount === c
+                      ? "bg-amber-500 text-slate-950 border-amber-400"
+                      : "bg-slate-950 border-slate-800 text-slate-400 hover:text-white"
+                  }`}
+                >
+                  {c}P
+                </button>
+              ))}
+            </div>
           </div>
 
           <p className="text-xs text-slate-400 mb-6 leading-relaxed">
@@ -734,30 +1090,37 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
                 <button
                   id="btn-skip-level"
                   onClick={onSkipLevel}
-                  className="px-3 py-2 rounded bg-slate-950 border border-slate-800 hover:bg-slate-900 text-xs text-amber-500 font-semibold transition flex items-center justify-center gap-1"
+                  className="px-3 py-2 rounded bg-slate-950 border border-slate-800 hover:bg-slate-900 text-xs text-amber-500 font-semibold transition flex items-center justify-center gap-1 col-span-2"
                 >
-                  <SkipForward className="w-3.5 h-3.5" /> Přeskočit
+                  <SkipForward className="w-3.5 h-3.5" /> Přeskočit aktuální biom
                 </button>
                 <button
                   id="btn-level1"
                   onClick={() => onStartLevel(1)}
                   className="px-3 py-2 rounded bg-slate-950 border border-slate-800 hover:bg-slate-900 text-xs text-slate-300 transition"
                 >
-                  Přejít na 1. úroveň
+                  1. Hory
                 </button>
                 <button
                   id="btn-level2"
                   onClick={() => onStartLevel(2)}
                   className="px-3 py-2 rounded bg-slate-950 border border-slate-800 hover:bg-slate-900 text-xs text-slate-300 transition"
                 >
-                  Přejít na 2. úroveň
+                  2. Poušť
                 </button>
                 <button
                   id="btn-level3"
                   onClick={() => onStartLevel(3)}
                   className="px-3 py-2 rounded bg-slate-950 border border-slate-800 hover:bg-slate-900 text-xs text-slate-300 transition"
                 >
-                  Přejít na 3. úroveň
+                  3. Les
+                </button>
+                <button
+                  id="btn-level4"
+                  onClick={() => onStartLevel(4)}
+                  className="px-3 py-2 rounded bg-slate-950 border border-cyan-800/80 hover:bg-cyan-950/60 text-xs text-cyan-300 font-semibold transition"
+                >
+                  4. Oceán (Hlubiny)
                 </button>
               </div>
             </div>
@@ -768,9 +1131,10 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
                 <HelpCircle className="w-3.5 h-3.5" /> Přehled nebezpečí v biomech
               </h4>
               <ul className="space-y-1 text-[11px] list-disc pl-4 leading-relaxed">
-                <li><strong className="text-rose-400">1. úroveň:</strong> Nagy se plazí; dračí příšery střílejí zelené kyselinové kapky vodorovně.</li>
-                <li><strong className="text-orange-400">2. úroveň:</strong> Obří písečný červ se vynořuje svisle. Jeho ocas vystřeluje fialové jedovaté jehly.</li>
-                <li><strong className="text-emerald-400">3. úroveň:</strong> Vyhýbání se větvím a kořenům stromů je POVINNÉ. Trpaslíci házejí trny v oblouku.</li>
+                <li><strong className="text-rose-400">1. úroveň:</strong> Nagy se plazí; lučištníci střílejí šípy, kouzelníci sesílají magické koule a dračí příšery plivou kyselinu.</li>
+                <li><strong className="text-orange-400">2. úroveň:</strong> Obří písečný červ se vynořuje svisle. Pouštní čarodějové a střelci útočí ze vzduchu i země.</li>
+                <li><strong className="text-emerald-400">3. úroveň:</strong> Obrnění rytíři útočí sekem meče, trpaslíci házejí trny a větve/kořeny tvoří překážky.</li>
+                <li><strong className="text-cyan-400">4. úroveň:</strong> Světélkující medúzy, vodní pirani, mořští hadi a gigantický obří Kraken!</li>
               </ul>
             </div>
 

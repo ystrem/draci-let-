@@ -95,6 +95,18 @@ export class ParallaxBackground {
         this.midSpeed = 1.1;
         this.nearSpeed = 2.2;
         break;
+
+      case 4: // Ocean Depths
+        this.drawOceanSky();
+        this.drawOceanReefSilhouettes(this.farLayer, 180, 0x1e1b4b, 0x0f172a, 1);  // Deep abyssal trench spires
+        this.drawOceanReefSilhouettes(this.midLayer, 260, 0x0369a1, 0x075985, 2);  // Coral reefs & kelp forests
+        this.drawOceanReefSilhouettes(this.nearLayer, 360, 0x0284c7, 0x0369a1, 3); // Closer seabed & glowing anemones
+        
+        // Speeds
+        this.farSpeed = 0.3;
+        this.midSpeed = 0.8;
+        this.nearSpeed = 1.6;
+        break;
     }
   }
 
@@ -114,40 +126,41 @@ export class ParallaxBackground {
 
   // --- LEVEL 1 STORM GRAPHICS ---
   private drawStormySky() {
-    // Fill background with stormy violet-navy
-    this.skyLayer.rect(0, 0, this.width, this.height).fill({ color: 0x0f111a });
+    // Fill background with rich stormy dark indigo navy
+    this.skyLayer.rect(0, 0, this.width, this.height).fill({ color: 0x0f172a });
     
-    // Add some soft clouds
-    this.skyLayer.ellipse(150, 60, 120, 40).fill({ color: 0x181824, alpha: 0.6 });
-    this.skyLayer.ellipse(450, 80, 180, 50).fill({ color: 0x181824, alpha: 0.6 });
-    this.skyLayer.ellipse(750, 50, 130, 35).fill({ color: 0x181824, alpha: 0.6 });
+    // Radiant moon on the mountain horizon
+    this.skyLayer.circle(650, 90, 40).fill({ color: 0xf8fafc, alpha: 0.95 });
+    this.skyLayer.circle(650, 90, 56).fill({ color: 0x60a5fa, alpha: 0.25 });
+    this.skyLayer.circle(650, 90, 75).fill({ color: 0x3b82f6, alpha: 0.1 });
+
+    // Layered stormy clouds with atmospheric glow
+    this.skyLayer.ellipse(150, 50, 180, 55).fill({ color: 0x1e293b, alpha: 0.85 });
+    this.skyLayer.ellipse(420, 75, 240, 65).fill({ color: 0x334155, alpha: 0.75 });
+    this.skyLayer.ellipse(720, 45, 170, 50).fill({ color: 0x1e1b4b, alpha: 0.9 });
   }
 
   private drawRockyPeaks(g: Graphics, baseHeight: number, topColor: number, bottomColor: number, hasSnow: boolean = false) {
     g.clear();
     
-    // We draw two identical side-by-side versions from x=0..800 and x=800..1600
-    // To make it look rocky, we generate a set of deterministic peaks using fixed equations
     const getPeaksY = (x: number): number => {
-      // Periodic combinations to create jagged mountain look
-      const wave = Math.sin(x * 0.008) * 60 + Math.cos(x * 0.02) * 20 + Math.sin(x * 0.04) * 8;
+      const wave = Math.sin(x * 0.007) * 75 + Math.cos(x * 0.018) * 28 + Math.sin(x * 0.035) * 12;
       return this.height - baseHeight + wave;
     };
 
     const drawSide = (offsetX: number) => {
-      const step = 20;
+      const step = 16;
       g.moveTo(offsetX, this.height);
       
       for (let x = 0; x <= this.width; x += step) {
-        const py = getPeaksY(x);
-        g.lineTo(offsetX + x, py);
+        g.lineTo(offsetX + x, getPeaksY(x));
       }
       
       g.lineTo(offsetX + this.width, this.height);
       g.closePath();
       g.fill({ color: bottomColor });
 
-      // Highlight/shading side (to give 3D rocky volumes)
+      // Highlight/shading side for 3D mountain ridges
       for (let x = 0; x < this.width; x += step * 2) {
         const py1 = getPeaksY(x);
         const py2 = getPeaksY(x + step);
@@ -156,17 +169,23 @@ export class ParallaxBackground {
           .lineTo(offsetX + x + step * 0.8, this.height)
           .lineTo(offsetX + x, this.height)
           .closePath()
-          .fill({ color: topColor, alpha: 0.7 });
+          .fill({ color: topColor, alpha: 0.85 });
 
-        // Add white snow caps if requested
-        if (hasSnow && py1 < this.height - baseHeight + 10) {
+        // Add brilliant snow caps with blue reflection on high peaks
+        if (hasSnow && py1 < this.height - baseHeight + 15) {
           g.moveTo(offsetX + x, py1)
-            .lineTo(offsetX + x + step * 0.5, py1 - 5)
+            .lineTo(offsetX + x + step * 0.5, py1 - 6)
             .lineTo(offsetX + x + step, py2)
-            .lineTo(offsetX + x + step * 0.6, py2 + 15)
-            .lineTo(offsetX + x + step * 0.3, py1 + 18)
+            .lineTo(offsetX + x + step * 0.6, py2 + 18)
+            .lineTo(offsetX + x + step * 0.3, py1 + 22)
             .closePath()
-            .fill({ color: 0xf3f4f6 }); // Snow color
+            .fill({ color: 0xf8fafc });
+          // Snow shadow
+          g.moveTo(offsetX + x + step * 0.3, py1 + 22)
+            .lineTo(offsetX + x + step * 0.6, py2 + 18)
+            .lineTo(offsetX + x + step * 0.5, py2 + 25)
+            .closePath()
+            .fill({ color: 0xc7d2fe, alpha: 0.7 });
         }
       }
     };
@@ -177,24 +196,32 @@ export class ParallaxBackground {
 
   // --- LEVEL 2 DESERT DUNES ---
   private drawDesertSky() {
-    // Warm heat haze sky (orange-red)
+    // Rich golden-red sunset heat haze sky
     this.skyLayer.rect(0, 0, this.width, this.height).fill({ color: 0x451a03 });
-    // Distant hot glowing sun
-    this.skyLayer.circle(this.width / 2, this.height / 2 + 50, 100).fill({ color: 0xeab308, alpha: 0.4 });
-    this.skyLayer.circle(this.width / 2, this.height / 2 + 50, 70).fill({ color: 0xf97316, alpha: 0.6 });
+    this.skyLayer.rect(0, 200, this.width, this.height - 200).fill({ color: 0x78350f, alpha: 0.5 });
+    
+    // Radiant glowing setting sun with sunburst rays
+    const sunX = 400;
+    const sunY = 260;
+    this.skyLayer.circle(sunX, sunY, 160).fill({ color: 0xef4444, alpha: 0.3 });
+    this.skyLayer.circle(sunX, sunY, 110).fill({ color: 0xf97316, alpha: 0.55 });
+    this.skyLayer.circle(sunX, sunY, 70).fill({ color: 0xfde047, alpha: 0.95 });
+
+    // Distant Ancient Desert Pyramid Silhouettes on horizon
+    this.skyLayer.moveTo(120, sunY + 20).lineTo(200, sunY - 50).lineTo(280, sunY + 20).closePath().fill({ color: 0x78350f, alpha: 0.7 });
+    this.skyLayer.moveTo(520, sunY + 20).lineTo(620, sunY - 70).lineTo(720, sunY + 20).closePath().fill({ color: 0x78350f, alpha: 0.8 });
   }
 
   private drawDunes(g: Graphics, baseHeight: number, topColor: number, bottomColor: number) {
     g.clear();
 
     const getDuneY = (x: number): number => {
-      // Smooth sine/cos waves for desert dunes
-      const wave = Math.sin(x * 0.005) * 45 + Math.cos(x * 0.012) * 15;
+      const wave = Math.sin(x * 0.006) * 55 + Math.cos(x * 0.014) * 20;
       return this.height - baseHeight + wave;
     };
 
     const drawSide = (offsetX: number) => {
-      const step = 15;
+      const step = 12;
       g.moveTo(offsetX, this.height);
       
       for (let x = 0; x <= this.width; x += step) {
@@ -205,68 +232,160 @@ export class ParallaxBackground {
       g.closePath();
       g.fill({ color: bottomColor });
 
-      // Dune shading layer
+      // Golden dune ridge highlights & wind crests
       g.moveTo(offsetX, this.height);
       for (let x = 0; x <= this.width; x += step) {
         g.lineTo(offsetX + x, getDuneY(x));
       }
-      // Shadow curve overlay
       for (let x = this.width; x >= 0; x -= step) {
-        g.lineTo(offsetX + x, getDuneY(x) + 12);
+        g.lineTo(offsetX + x, getDuneY(x) + 16);
       }
       g.closePath();
-      g.fill({ color: topColor, alpha: 0.8 });
+      g.fill({ color: topColor, alpha: 0.9 });
     };
 
     drawSide(0);
     drawSide(this.width);
   }
 
-  // --- LEVEL 3 DEEP FOREST ---
+  // --- LEVEL 3 DEEP ENCHANTED FOREST ---
   private drawForestSky() {
-    // Gloomy deep dark forest sky
-    this.skyLayer.rect(0, 0, this.width, this.height).fill({ color: 0x021c1e });
-    // Ambient soft canopy light shafts
-    this.skyLayer.moveTo(100, 0).lineTo(220, 0).lineTo(400, this.height).lineTo(150, this.height).closePath().fill({ color: 0x0f766e, alpha: 0.15 });
-    this.skyLayer.moveTo(450, 0).lineTo(540, 0).lineTo(680, this.height).lineTo(520, this.height).closePath().fill({ color: 0x0f766e, alpha: 0.12 });
+    // Enchanted dark emerald canopy sky
+    this.skyLayer.rect(0, 0, this.width, this.height).fill({ color: 0x064e3b });
+    this.skyLayer.rect(0, 180, this.width, this.height - 180).fill({ color: 0x022c22, alpha: 0.6 });
+    
+    // Moonlight rays breaking through thick forest canopy
+    this.skyLayer.moveTo(80, 0).lineTo(220, 0).lineTo(380, this.height).lineTo(180, this.height).closePath().fill({ color: 0x34d399, alpha: 0.18 });
+    this.skyLayer.moveTo(420, 0).lineTo(560, 0).lineTo(720, this.height).lineTo(540, this.height).closePath().fill({ color: 0x34d399, alpha: 0.22 });
+
+    // Ambient floating magic forest spores / glowing fireflies
+    for (let i = 0; i < 25; i++) {
+      const fx = (i * 42 + 15) % this.width;
+      const fy = (i * 23 + 30) % (this.height - 80);
+      this.skyLayer.circle(fx, fy, (i % 3) + 2).fill({ color: 0xa7f3d0, alpha: 0.85 });
+    }
   }
 
   private drawForestSilhouettes(g: Graphics, baseHeight: number, trunkColor: number, leafColor: number, layer: number) {
     g.clear();
 
     const drawSide = (offsetX: number) => {
-      // First, draw a flat ground base line
-      g.rect(offsetX, this.height - 20, this.width, 20).fill({ color: leafColor });
+      // Floor undergrowth
+      g.rect(offsetX, this.height - 25, this.width, 25).fill({ color: leafColor });
 
-      // Draw several distinct trees per screen length
-      const treeSpacing = this.width / (3 * layer);
+      const treeCount = 4 * layer;
+      const treeSpacing = this.width / treeCount;
       
-      for (let i = 0; i <= 3 * layer; i++) {
-        const treeX = offsetX + i * treeSpacing + (Math.sin(i) * 20);
-        const treeWidth = 14 / layer + 6;
-        const treeHeight = baseHeight + (Math.cos(i) * 35);
+      for (let i = 0; i <= treeCount; i++) {
+        const treeX = offsetX + i * treeSpacing + (Math.sin(i * 1.5) * 15);
+        const treeWidth = 18 / layer + 8;
+        const treeHeight = baseHeight + (Math.cos(i * 2) * 45);
 
-        // Draw trunk climbing from ground
+        // Trunk
         g.rect(treeX - treeWidth / 2, this.height - treeHeight, treeWidth, treeHeight).fill({ color: trunkColor });
 
-        // Gnarled branches
-        g.moveTo(treeX, this.height - treeHeight + 30)
-          .lineTo(treeX - 25, this.height - treeHeight + 5)
+        // Branch arches
+        g.moveTo(treeX, this.height - treeHeight + 35)
+          .lineTo(treeX - 30, this.height - treeHeight + 10)
           .stroke({ color: trunkColor, width: treeWidth * 0.5 });
-        g.moveTo(treeX, this.height - treeHeight + 50)
-          .lineTo(treeX + 30, this.height - treeHeight + 35)
-          .stroke({ color: trunkColor, width: treeWidth * 0.4 });
+        g.moveTo(treeX, this.height - treeHeight + 55)
+          .lineTo(treeX + 35, this.height - treeHeight + 30)
+          .stroke({ color: trunkColor, width: treeWidth * 0.45 });
 
-        // Draw leafy cluster blobs on top of tree
-        g.circle(treeX, this.height - treeHeight, 28 / layer + 10).fill({ color: leafColor });
-        g.circle(treeX - 18, this.height - treeHeight + 10, 20 / layer + 6).fill({ color: leafColor });
-        g.circle(treeX + 18, this.height - treeHeight + 15, 18 / layer + 6).fill({ color: leafColor });
+        // Massive foliage domes on tree crown
+        g.circle(treeX, this.height - treeHeight - 5, 34 / layer + 14).fill({ color: leafColor });
+        g.circle(treeX - 22, this.height - treeHeight + 10, 24 / layer + 8).fill({ color: leafColor });
+        g.circle(treeX + 22, this.height - treeHeight + 12, 22 / layer + 8).fill({ color: leafColor });
 
-        // Hanging vines (Level 3 exclusive feel)
-        if (layer === 2) {
-          g.moveTo(treeX - 15, this.height - treeHeight + 25)
-            .bezierCurveTo(treeX - 22, this.height - treeHeight + 55, treeX - 12, this.height - treeHeight + 85, treeX - 18, this.height - treeHeight + 115)
-            .stroke({ color: 0x064e3b, width: 2 });
+        // Mossy hanging vines
+        if (layer >= 2) {
+          g.moveTo(treeX - 18, this.height - treeHeight + 20)
+            .bezierCurveTo(treeX - 25, this.height - treeHeight + 60, treeX - 10, this.height - treeHeight + 90, treeX - 20, this.height - treeHeight + 130)
+            .stroke({ color: 0x047857, width: 2.5 });
+        }
+      }
+    };
+
+    drawSide(0);
+    drawSide(this.width);
+  }
+
+  // --- LEVEL 4 OCEAN DEPTHS ---
+  private drawOceanSky() {
+    // Rich vibrant deep ocean water background
+    this.skyLayer.rect(0, 0, this.width, this.height).fill({ color: 0x075985 });
+    
+    // Sunlight filtering down through surface water layer
+    this.skyLayer.rect(0, 0, this.width, 160).fill({ color: 0x0284c7, alpha: 0.6 });
+    this.skyLayer.rect(0, 0, this.width, 60).fill({ color: 0x38bdf8, alpha: 0.4 });
+
+    // Water surface caustic light beams piercing from above
+    this.skyLayer.moveTo(80, 0).lineTo(180, 0).lineTo(340, this.height).lineTo(160, this.height).closePath().fill({ color: 0x7dd3fc, alpha: 0.28 });
+    this.skyLayer.moveTo(360, 0).lineTo(480, 0).lineTo(640, this.height).lineTo(420, this.height).closePath().fill({ color: 0x38bdf8, alpha: 0.32 });
+    this.skyLayer.moveTo(660, 0).lineTo(760, 0).lineTo(820, this.height).lineTo(680, this.height).closePath().fill({ color: 0x7dd3fc, alpha: 0.25 });
+
+    // Surface water wave ripples
+    for (let x = 0; x < this.width; x += 40) {
+      this.skyLayer.moveTo(x, 10).bezierCurveTo(x + 10, 4, x + 30, 16, x + 40, 10).stroke({ color: 0xbae6fd, width: 2, alpha: 0.6 });
+    }
+
+    // Floating bioluminescent water bubbles with highlight centers
+    for (let i = 0; i < 35; i++) {
+      const bx = (i * 37 + 20) % this.width;
+      const by = (i * 29 + 15) % this.height;
+      const r = (i % 4) + 2.5;
+      this.skyLayer.circle(bx, by, r).fill({ color: 0x38bdf8, alpha: 0.6 });
+      this.skyLayer.circle(bx - 0.8, by - 0.8, r * 0.45).fill({ color: 0xffffff, alpha: 0.9 });
+    }
+
+    // Distant background fish silhouettes
+    for (let f = 0; f < 5; f++) {
+      const fx = (f * 160 + 50) % this.width;
+      const fy = 80 + f * 45;
+      this.skyLayer.ellipse(fx, fy, 12, 5).fill({ color: 0x0284c7, alpha: 0.7 });
+      this.skyLayer.poly([fx + 12, fy, fx + 18, fy - 4, fx + 18, fy + 4]).fill({ color: 0x0284c7, alpha: 0.7 });
+    }
+  }
+
+  private drawOceanReefSilhouettes(g: Graphics, baseHeight: number, deepColor: number, reefColor: number, layer: number) {
+    g.clear();
+
+    const coralBulbColors = [0xec4899, 0xf59e0b, 0xa855f7, 0x10b981, 0x38bdf8];
+
+    const drawSide = (offsetX: number) => {
+      // Seabed sandy floor
+      g.rect(offsetX, this.height - 35, this.width, 35).fill({ color: deepColor });
+
+      const count = 5 * layer;
+      const spacing = this.width / count;
+      
+      for (let i = 0; i <= count; i++) {
+        const rx = offsetX + i * spacing + Math.sin(i * 1.8) * 12;
+        const rw = 22 / layer + 12;
+        const rh = baseHeight + Math.cos(i * 2.2) * 40;
+
+        // Coral spire / rock column
+        g.moveTo(rx - rw / 2, this.height)
+          .lineTo(rx - rw * 0.35, this.height - rh)
+          .lineTo(rx + rw * 0.35, this.height - rh)
+          .lineTo(rx + rw / 2, this.height)
+          .closePath()
+          .fill({ color: reefColor });
+
+        // Glowing anemone bulbs & coral caps
+        const capColor = coralBulbColors[i % coralBulbColors.length];
+        g.circle(rx, this.height - rh, rw * 0.75).fill({ color: capColor });
+        g.circle(rx - rw * 0.2, this.height - rh - rw * 0.2, rw * 0.25).fill({ color: 0xffffff, alpha: 0.6 });
+
+        if (layer >= 2) {
+          // Kelp frond wavy lines
+          g.moveTo(rx, this.height - 10)
+            .bezierCurveTo(rx + 22, this.height - rh * 0.5, rx - 22, this.height - rh * 0.8, rx + 12, this.height - rh - 25)
+            .stroke({ color: 0x06b6d4, width: 3.5 });
+
+          g.moveTo(rx + 15, this.height - 15)
+            .bezierCurveTo(rx - 15, this.height - rh * 0.4, rx + 25, this.height - rh * 0.7, rx - 10, this.height - rh - 30)
+            .stroke({ color: 0x10b981, width: 3 });
         }
       }
     };

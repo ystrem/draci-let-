@@ -1,6 +1,6 @@
 import { Container, Graphics } from "pixi.js";
 
-export type EnemyType = "naga" | "dragon_monster" | "giant_worm" | "worm_tail" | "dwarf";
+export type EnemyType = "naga" | "dragon_monster" | "giant_worm" | "worm_tail" | "dwarf" | "mountain_boss" | "forest_boss" | "sea_jelly" | "sea_piranha" | "sea_serpent" | "sea_kraken_boss";
 
 export class Enemy {
   public container: Container;
@@ -63,11 +63,23 @@ export class Enemy {
         this.buildDragonMonster();
         break;
 
+      case "mountain_boss":
+        this.width = 140;
+        this.height = 90;
+        this.health = 850; // High Boss health
+        this.maxHealth = 850;
+        this.speedX = 0;
+        this.speedY = 0;
+        this.damage = 25;
+        this.fireRate = 1100;
+        this.buildMountainBoss();
+        break;
+
       case "giant_worm":
         this.width = 120;
         this.height = 100;
-        this.health = 250; // Boss health
-        this.maxHealth = 250;
+        this.health = 850; // High Boss health
+        this.maxHealth = 850;
         this.speedX = -1.5;
         this.speedY = 0;
         this.damage = 30;
@@ -97,6 +109,65 @@ export class Enemy {
         this.damage = 15;
         this.fireRate = 2000 + Math.random() * 1000; // throws thorn arcs
         this.buildDwarf();
+        break;
+
+      case "forest_boss":
+        this.width = 130;
+        this.height = 110;
+        this.health = 950; // High Boss health
+        this.maxHealth = 950;
+        this.speedX = -0.5;
+        this.speedY = 0;
+        this.damage = 30;
+        this.fireRate = 1200;
+        this.buildForestBoss();
+        break;
+
+      case "sea_jelly":
+        this.width = 32;
+        this.height = 36;
+        this.health = 18;
+        this.maxHealth = 18;
+        this.speedX = -(1.2 + Math.random() * 0.8);
+        this.speedY = 0;
+        this.damage = 8;
+        this.fireRate = 2200;
+        this.buildSeaJelly();
+        break;
+
+      case "sea_piranha":
+        this.width = 42;
+        this.height = 28;
+        this.health = 25;
+        this.maxHealth = 25;
+        this.speedX = -(3.2 + Math.random() * 1.5); // Fast swimmer
+        this.speedY = 0;
+        this.damage = 14;
+        this.buildSeaPiranha();
+        break;
+
+      case "sea_serpent":
+        this.width = 75;
+        this.height = 32;
+        this.health = 45;
+        this.maxHealth = 45;
+        this.speedX = -(1.8 + Math.random() * 1.0);
+        this.speedY = 0;
+        this.damage = 18;
+        this.fireRate = 1800;
+        this.buildSeaSerpent();
+        break;
+
+      case "sea_kraken_boss":
+        this.width = 160;
+        this.height = 130;
+        this.health = 1100; // Massive Ocean Boss health
+        this.maxHealth = 1100;
+        this.speedX = 0;
+        this.speedY = 0;
+        this.damage = 35;
+        this.fireRate = 1000;
+        this.buildSeaKrakenBoss();
         break;
     }
 
@@ -279,6 +350,228 @@ export class Enemy {
     this.container.addChild(mainG);
   }
 
+  // Draw Level 1 Mountain Boss: Vládce Bouřných Štítů
+  private buildMountainBoss() {
+    const mainG = this.mainGraphics;
+    mainG.clear();
+
+    const scaleColor = 0x1e1b4b; // Deep Indigo Navy
+    const bellyColor = 0x38bdf8; // Electric Cyan belly
+    const wingColor = 0x06b6d4;  // Cyan wing membrane
+    const hornColor = 0xfef08a;  // Lightning Horn Gold
+
+    // Back wings (huge storm wings)
+    mainG.moveTo(10, -10)
+      .lineTo(60, -65)
+      .lineTo(15, -75)
+      .lineTo(-30, -50)
+      .lineTo(-10, -10)
+      .closePath()
+      .fill({ color: wingColor });
+
+    mainG.moveTo(-5, -5)
+      .lineTo(-45, -70)
+      .lineTo(-75, -50)
+      .lineTo(-40, -15)
+      .closePath()
+      .fill({ color: 0x0284c7 });
+
+    // Main Body
+    mainG.ellipse(0, 10, 45, 25).fill({ color: scaleColor });
+    // Belly plate
+    mainG.ellipse(-5, 18, 30, 14).fill({ color: bellyColor });
+
+    // Colossal Head facing left
+    mainG.moveTo(-25, 0)
+      .lineTo(-65, -15)
+      .lineTo(-70, 10)
+      .lineTo(-35, 25)
+      .closePath()
+      .fill({ color: scaleColor });
+
+    // Dual Majestic Lightning Horns
+    mainG.moveTo(-45, -12).lineTo(-68, -45).lineTo(-38, -25).closePath().fill({ color: hornColor });
+    mainG.moveTo(-35, -15).lineTo(-50, -50).lineTo(-25, -22).closePath().fill({ color: hornColor });
+
+    // Glowing cyan dragon eye
+    mainG.circle(-52, -4, 4.5).fill({ color: 0x22d3ee });
+    mainG.circle(-53, -5, 2).fill({ color: 0xffffff });
+
+    // Sharp spiky teeth in mouth
+    mainG.moveTo(-65, -5).lineTo(-60, 2).lineTo(-55, -3).lineTo(-50, 4).stroke({ color: 0xffffff, width: 2 });
+
+    // Long spiky tail with electric orb
+    mainG.moveTo(35, 10).bezierCurveTo(65, 25, 80, -10, 100, -5).stroke({ color: scaleColor, width: 8 });
+    mainG.circle(100, -5, 10).fill({ color: 0x06b6d4 });
+    mainG.circle(100, -5, 6).fill({ color: 0xffffff });
+
+    this.container.addChild(mainG);
+  }
+
+  // Draw Level 3 Forest Boss: Prastarý Lesní Gigant (Tree Ent Golem)
+  private buildForestBoss() {
+    const mainG = this.mainGraphics;
+    mainG.clear();
+
+    const barkColor = 0x3f2305;  // Dark Oak Bark
+    const innerBark = 0x261403;
+    const mossColor = 0x15803d;  // Mossy Green Crown
+    const runeColor = 0xf59e0b;  // Glowing Amber Runes
+
+    // Giant Mossy Foliage Canopy (Crown on top)
+    mainG.circle(0, -45, 38).fill({ color: mossColor });
+    mainG.circle(-28, -35, 28).fill({ color: 0x166534 });
+    mainG.circle(28, -35, 28).fill({ color: 0x166534 });
+
+    // Main Trunk Body
+    mainG.poly([-35, 35, -45, -15, 0, -35, 45, -15, 35, 35, 0, 45]).fill({ color: barkColor });
+    mainG.poly([-25, 25, -32, -10, 0, -25, 32, -10, 25, 25, 0, 35]).fill({ color: innerBark });
+
+    // Glowing Amber Rune Eyes on Bark Face
+    mainG.circle(-16, -10, 5).fill({ color: runeColor });
+    mainG.circle(16, -10, 5).fill({ color: runeColor });
+    mainG.circle(-16, -10, 2.5).fill({ color: 0xffffff });
+    mainG.circle(16, -10, 2.5).fill({ color: 0xffffff });
+
+    // Jagged Wooden Mouth
+    mainG.moveTo(-20, 10).lineTo(-10, 18).lineTo(0, 12).lineTo(10, 18).lineTo(20, 10).stroke({ color: 0x78350f, width: 4 });
+
+    // Massive Wooden Club Fist Arms
+    mainG.circle(-48, 10, 18).fill({ color: barkColor });
+    mainG.circle(48, 10, 18).fill({ color: barkColor });
+    mainG.circle(-48, 10, 8).fill({ color: mossColor });
+    mainG.circle(48, 10, 8).fill({ color: mossColor });
+
+    // Root feet at bottom
+    mainG.moveTo(-30, 35).lineTo(-45, 50).lineTo(-15, 42).closePath().fill({ color: barkColor });
+    mainG.moveTo(30, 35).lineTo(45, 50).lineTo(15, 42).closePath().fill({ color: barkColor });
+
+    this.container.addChild(mainG);
+  }
+
+  // Draw Bioluminescent Sea Jelly (Small Minion)
+  private buildSeaJelly() {
+    const mainG = this.mainGraphics;
+    mainG.clear();
+
+    // Glowing translucent cyan bell dome
+    mainG.ellipse(0, -6, 14, 12).fill({ color: 0x06b6d4, alpha: 0.85 });
+    mainG.ellipse(-4, -10, 5, 3).fill({ color: 0x67e8f9, alpha: 0.9 });
+    mainG.ellipse(0, -6, 16, 14).stroke({ color: 0x22d3ee, width: 1.5 });
+
+    // Inner glowing core organ
+    mainG.circle(0, -4, 4).fill({ color: 0xa5f3fc });
+
+    // Dangling tentacles
+    for (let i = -10; i <= 10; i += 5) {
+      mainG.moveTo(i, 2)
+        .quadraticCurveTo(i + 4, 12, i - 2, 20)
+        .stroke({ color: 0x38bdf8, width: 1.8 });
+    }
+
+    this.container.addChild(mainG);
+  }
+
+  // Draw Aggressive Sea Piranha (Small Minion)
+  private buildSeaPiranha() {
+    const mainG = this.mainGraphics;
+    mainG.clear();
+
+    // Fish body (Deep blue & magenta)
+    mainG.ellipse(0, 0, 18, 12).fill({ color: 0x1e1b4b });
+    mainG.ellipse(2, 2, 14, 8).fill({ color: 0xc026d3 });
+
+    // Tail fin
+    mainG.moveTo(14, 0).lineTo(24, -10).lineTo(20, 0).lineTo(24, 10).closePath().fill({ color: 0xec4899 });
+
+    // Sharp dorsal and ventral fins
+    mainG.moveTo(2, -10).lineTo(-8, -18).lineTo(-4, -8).closePath().fill({ color: 0xa855f7 });
+    mainG.moveTo(2, 10).lineTo(-6, 16).lineTo(-2, 8).closePath().fill({ color: 0xa855f7 });
+
+    // Angry glowing yellow eye
+    mainG.circle(-8, -4, 4).fill({ color: 0xfacc15 });
+    mainG.circle(-9, -4, 2).fill({ color: 0x000000 });
+
+    // Sharp white teeth jaw
+    mainG.moveTo(-12, 0).lineTo(-18, 4).lineTo(-14, 2).lineTo(-18, 8).lineTo(-10, 6).closePath().fill({ color: 0xffffff });
+
+    this.container.addChild(mainG);
+  }
+
+  // Draw Electric Sea Serpent (Medium Minion)
+  private buildSeaSerpent() {
+    const segmentCount = 5;
+    const segmentRadius = 10;
+    const colors = [0x0284c7, 0x0369a1, 0x075985, 0x0c4a6e, 0x082f49];
+
+    for (let i = 0; i < segmentCount; i++) {
+      const g = new Graphics();
+      g.clear();
+      if (i === 0) {
+        // Dragon sea head
+        g.circle(0, 0, segmentRadius + 3).fill({ color: 0x0284c7 });
+        // Glowing cyan eye
+        g.circle(-4, -3, 3).fill({ color: 0x38bdf8 });
+        g.circle(-4, -3, 1.5).fill({ color: 0xffffff });
+        // Sea crest fins
+        g.moveTo(2, -10).lineTo(10, -18).lineTo(4, -6).closePath().fill({ color: 0x38bdf8 });
+        // Fangs
+        g.moveTo(-10, 3).lineTo(-14, 8).lineTo(-7, 5).fill({ color: 0xffffff });
+      } else {
+        // Body segment
+        g.circle(0, 0, segmentRadius - i * 1.2).fill({ color: colors[i % colors.length] });
+        g.circle(0, -2, (segmentRadius - i * 1.2) * 0.5).fill({ color: 0x38bdf8 });
+      }
+
+      g.x = -i * 14;
+      g.y = 0;
+      this.segments.push({ x: g.x, y: g.y, graphics: g });
+      this.container.addChild(g);
+    }
+  }
+
+  // Draw Ancient Ocean Kraken Boss (Massive Sea Boss)
+  private buildSeaKrakenBoss() {
+    const mainG = this.mainGraphics;
+    mainG.clear();
+
+    const krakenColor = 0x312e81; // Deep abyss indigo
+    const innerColor = 0x4338ca;
+    const eyeColor = 0xf59e0b; // Glowing golden amber
+
+    // Writhing outer tentacles
+    for (let a = 0; a < Math.PI * 2; a += Math.PI / 4) {
+      const tx = Math.cos(a) * 45;
+      const ty = Math.sin(a) * 45;
+      mainG.circle(tx, ty, 18).fill({ color: 0x1e1b4b });
+      mainG.circle(tx, ty, 10).fill({ color: 0x4f46e5 });
+      // Suction cups
+      mainG.circle(tx + 4, ty + 4, 3.5).fill({ color: 0xc7d2fe });
+    }
+
+    // Main Kraken Mantle Dome
+    mainG.ellipse(0, -10, 48, 38).fill({ color: krakenColor });
+    mainG.ellipse(0, -15, 36, 26).fill({ color: innerColor });
+
+    // Crown spikes / Abyssal fins
+    mainG.moveTo(-35, -40).lineTo(-20, -65).lineTo(-10, -42).closePath().fill({ color: 0x4338ca });
+    mainG.moveTo(35, -40).lineTo(20, -65).lineTo(10, -42).closePath().fill({ color: 0x4338ca });
+    mainG.moveTo(0, -45).lineTo(0, -72).lineTo(8, -45).closePath().fill({ color: 0x6366f1 });
+
+    // Large Glowing Golden Abyssal Eyes
+    mainG.circle(-22, -10, 9).fill({ color: eyeColor });
+    mainG.circle(22, -10, 9).fill({ color: eyeColor });
+    mainG.circle(-22, -10, 4).fill({ color: 0x000000 });
+    mainG.circle(22, -10, 4).fill({ color: 0x000000 });
+    mainG.circle(-24, -12, 2.5).fill({ color: 0xffffff });
+    mainG.circle(20, -12, 2.5).fill({ color: 0xffffff });
+
+    // Menacing Beak Mouth
+    mainG.moveTo(-12, 10).lineTo(0, 22).lineTo(12, 10).lineTo(0, 14).closePath().fill({ color: 0x020617 });
+
+    this.container.addChild(mainG);
+  }
+
   // Update position and behavior
   public update(ticker: { deltaTime: number }, playerX: number, playerY: number, screenWidth: number, screenHeight: number) {
     const dt = ticker.deltaTime || 1;
@@ -311,11 +604,18 @@ export class Enemy {
       case "dragon_monster": {
         // Dragon monsters bob up and down slightly
         this.y += Math.sin(this.animTime * 1.5) * 0.5 * dt;
-        
-        // Flap visual wing slightly (scaling)
-        const wingFlap = Math.sin(this.animTime * 2);
-        // We can access or redraw, or simpler: since it's a static graphics child,
-        // we can just scale the whole graphics a tiny bit, but let's keep it clean.
+        break;
+      }
+
+      case "mountain_boss": {
+        // Mountain Boss hovers gracefully around screen right (x ~ 650)
+        // Smooth sine wave movement up and down
+        if (this.x > 620) {
+          this.speedX = -1.8;
+        } else {
+          this.speedX = 0;
+        }
+        this.y = 200 + Math.sin(this.animTime * 0.9) * 80;
         break;
       }
 
@@ -346,10 +646,8 @@ export class Enemy {
         }
 
         // Segment chaining logic for giant worm!
-        // The segments follow the parent or previous segment position
         for (let i = 0; i < this.segments.length; i++) {
           const seg = this.segments[i];
-          // We apply a sine wave tail wiggle
           seg.graphics.y = Math.sin(this.animTime * 0.6 - i * 0.4) * 6;
         }
 
@@ -378,14 +676,58 @@ export class Enemy {
       }
 
       case "dwarf": {
-        // Dwarves walk along bottom (or stay put on forest platforms)
-        // If they fall off, they stay bound to the lower region
         const groundLevel = screenHeight - 45;
         if (this.y < groundLevel - 5) {
-          this.y += 2 * dt; // simulated gravity to stick to floor
+          this.y += 2 * dt;
         } else {
           this.y = groundLevel;
         }
+        break;
+      }
+
+      case "forest_boss": {
+        // Forest Boss marches on forest ground floor
+        if (this.x > 630) {
+          this.speedX = -1.5;
+        } else {
+          this.speedX = Math.sin(this.animTime * 0.5) * 1.2;
+        }
+        const forestFloor = 310;
+        this.y = forestFloor + Math.sin(this.animTime * 1.5) * 12; // stomping march
+        break;
+      }
+
+      case "sea_jelly": {
+        // Jellyfish pulses upwards and drifts slowly
+        this.y += Math.sin(this.animTime * 1.8) * 1.8 * dt;
+        break;
+      }
+
+      case "sea_piranha": {
+        // Piranha darts aggressively up and down aiming for dragon height
+        const dy = playerY - this.y;
+        this.y += Math.sign(dy) * 1.2 * dt + Math.sin(this.animTime * 2.5) * 0.8;
+        break;
+      }
+
+      case "sea_serpent": {
+        this.y += Math.sin(this.animTime * 1.2) * 2.0 * dt;
+        for (let i = 0; i < this.segments.length; i++) {
+          const seg = this.segments[i];
+          seg.graphics.y = Math.sin(this.animTime * 1.2 - i * 0.6) * 10;
+        }
+        break;
+      }
+
+      case "sea_kraken_boss": {
+        // Massive Kraken floats in water abyssal depths, slowly swaying
+        if (this.x > 620) {
+          this.speedX = -1.5;
+        } else {
+          this.speedX = 0;
+        }
+        this.y = 220 + Math.sin(this.animTime * 0.8) * 70;
+        this.container.rotation = Math.sin(this.animTime * 0.4) * 0.08;
         break;
       }
     }
@@ -405,12 +747,35 @@ export class Enemy {
 
   public getBoundingBox() {
     if (this.type === "giant_worm") {
-      // Large boss box
       return {
         x: this.x - 50,
         y: this.y - 45,
         width: 100,
         height: 90
+      };
+    }
+    if (this.type === "mountain_boss") {
+      return {
+        x: this.x - 65,
+        y: this.y - 40,
+        width: 130,
+        height: 80
+      };
+    }
+    if (this.type === "forest_boss") {
+      return {
+        x: this.x - 55,
+        y: this.y - 50,
+        width: 110,
+        height: 100
+      };
+    }
+    if (this.type === "sea_kraken_boss") {
+      return {
+        x: this.x - 70,
+        y: this.y - 55,
+        width: 140,
+        height: 110
       };
     }
     // Normal enemy box
@@ -458,7 +823,7 @@ export class Projectile {
   
   // Who fired: "player" or "enemy"
   public owner: "player" | "enemy";
-  public type: "fire" | "acid" | "poison" | "thorn";
+  public type: "fire" | "acid" | "poison" | "thorn" | "arrow" | "magic_orb" | "sword_slash" | "plasma" | "boulder" | "bomb" | "laser_beam" | "homing";
 
   constructor(options: {
     x: number;
@@ -468,7 +833,7 @@ export class Projectile {
     color: number;
     damage: number;
     owner: "player" | "enemy";
-    type?: "fire" | "acid" | "poison" | "thorn";
+    type?: "fire" | "acid" | "poison" | "thorn" | "arrow" | "magic_orb" | "sword_slash" | "plasma" | "boulder" | "bomb" | "laser_beam" | "homing";
   }) {
     this.container = new Container();
     this.graphics = new Graphics();
@@ -490,6 +855,15 @@ export class Projectile {
     if (this.type === "fire") {
       this.width = 16;
       this.height = 10;
+    } else if (this.type === "plasma") {
+      this.width = 30;
+      this.height = 24;
+    } else if (this.type === "boulder") {
+      this.width = 28;
+      this.height = 28;
+    } else if (this.type === "bomb") {
+      this.width = 16;
+      this.height = 16;
     } else if (this.type === "acid") {
       this.width = 14;
       this.height = 14;
@@ -510,6 +884,32 @@ export class Projectile {
       g.ellipse(2, 0, 4, 2).fill({ color: 0xffffff });
       // Sparks trailing back
       g.moveTo(-6, -2).lineTo(-12, 0).lineTo(-6, 2).closePath().fill({ color: 0xffaa00 });
+    } else if (this.type === "plasma") {
+      // Massive glowing plasma crescent wave
+      g.ellipse(0, 0, 16, 12).fill({ color: this.color });
+      g.ellipse(2, 0, 10, 6).fill({ color: 0xffffff }); // White hot core
+      // Outer aura ring
+      g.ellipse(0, 0, 20, 14).stroke({ color: this.color, width: 2 });
+    } else if (this.type === "boulder") {
+      // Giant jagged sand rock
+      g.poly([-12, -8, 2, -14, 14, -6, 12, 8, 0, 14, -10, 10]).fill({ color: 0x9a3412 });
+      g.poly([-8, -4, 0, -10, 8, -4, 6, 4, -4, 6]).fill({ color: 0xc2410c }); // Inner rock detail
+    } else if (this.type === "bomb") {
+      // Explosive dwarf bomb with lit fuse
+      g.circle(0, 2, 7).fill({ color: 0x1c1917 }); // Iron bomb body
+      g.circle(-2, -1, 2).fill({ color: 0x57534e }); // Specular
+      // Fuse & spark
+      g.moveTo(0, -5).lineTo(4, -10).stroke({ color: 0xd97706, width: 2 });
+      g.circle(4, -10, 2.5).fill({ color: 0xef4444 }); // Spark
+    } else if (this.type === "laser_beam") {
+      // Long fast energy beam
+      g.rect(-15, -2, 30, 4).fill({ color: this.color });
+      g.rect(-12, -1, 24, 2).fill({ color: 0xffffff });
+    } else if (this.type === "homing") {
+      // Spiraling homing magic orb
+      g.circle(0, 0, 6).fill({ color: this.color });
+      g.circle(-1, -1, 3).fill({ color: 0xffffff });
+      g.moveTo(-6, 0).lineTo(-14, -3).lineTo(-10, 0).lineTo(-14, 3).closePath().fill({ color: this.color });
     } else if (this.type === "acid") {
       // Acid blob
       g.circle(0, 0, 6).fill({ color: 0x22c55e }); // vibrant green
@@ -532,6 +932,23 @@ export class Projectile {
         .closePath()
         .fill({ color: 0xeab308 });
       g.circle(-4, 0, 2.5).fill({ color: 0x78350f }); // wooden base node
+    } else if (this.type === "arrow") {
+      // Wooden Arrow with steel tip and red feather fletching facing direction
+      g.rect(-12, -1, 18, 2).fill({ color: 0x78350f }); // shaft
+      g.moveTo(6, -4).lineTo(14, 0).lineTo(6, 4).closePath().fill({ color: 0x94a3b8 }); // tip
+      g.moveTo(-12, -4).lineTo(-6, -1).lineTo(-12, 0).closePath().fill({ color: 0xef4444 }); // top feather
+      g.moveTo(-12, 4).lineTo(-6, 1).lineTo(-12, 0).closePath().fill({ color: 0xef4444 }); // bottom feather
+    } else if (this.type === "magic_orb") {
+      // Glowing Sapphire Magic Orb
+      g.circle(0, 0, 7).fill({ color: 0x06b6d4 });
+      g.circle(0, 0, 4).fill({ color: 0x67e8f9 });
+      g.circle(-2, -2, 2).fill({ color: 0xffffff });
+    } else if (this.type === "sword_slash") {
+      // Crescent Golden Sword Energy Wave
+      g.arc(0, 0, 12, -Math.PI * 0.4, Math.PI * 0.4, false)
+        .stroke({ color: 0xf59e0b, width: 4 });
+      g.arc(0, 0, 10, -Math.PI * 0.3, Math.PI * 0.3, false)
+        .stroke({ color: 0xfef08a, width: 2 });
     }
   }
 
@@ -542,10 +959,17 @@ export class Projectile {
     this.x += this.vx * dt;
     this.y += this.vy * dt;
 
-    // Apply gravity to thorns only for parabolic throw!
-    if (this.type === "thorn") {
+    // Apply specific behavior by type
+    if (this.type === "thorn" || this.type === "bomb") {
       this.vy += 0.12 * dt; // parabolic gravity pull
-      // rotate thorn graphics to face the flight vector!
+      this.container.rotation = Math.atan2(this.vy, this.vx);
+    } else if (this.type === "boulder") {
+      this.container.rotation += 0.08 * dt; // spin rock
+    } else if (this.type === "arrow" || this.type === "plasma" || this.type === "laser_beam") {
+      this.container.rotation = Math.atan2(this.vy, this.vx);
+    } else if (this.type === "magic_orb" || this.type === "homing") {
+      this.container.rotation += 0.15 * dt;
+    } else if (this.type === "sword_slash") {
       this.container.rotation = Math.atan2(this.vy, this.vx);
     }
 

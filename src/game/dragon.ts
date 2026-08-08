@@ -24,6 +24,9 @@ export class PlayerDragon {
   public speed: number = 6;
   public fireRate: number = 300; // ms between shots
   public lastFired: number = 0;
+  public lastSpecialFired: number = 0;
+  public specialCooldown: number = 2500; // 2.5s special attack cooldown
+  public attackMode: "single" | "spread" | "plasma" = "single";
   public projectileColor: number = 0xff5500;
 
   // Animation time

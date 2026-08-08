@@ -93,6 +93,12 @@ export default function App() {
     }
   };
 
+  const handleSetPlayerCount = (count: number) => {
+    if (engineRef.current) {
+      engineRef.current.setPlayerCount(count);
+    }
+  };
+
   const handleSkipLevel = () => {
     if (engineRef.current) {
       engineRef.current.skipLevel();
@@ -110,6 +116,7 @@ export default function App() {
         onTogglePause={handleTogglePause}
         onResetGame={handleResetGame}
         onSkipLevel={handleSkipLevel}
+        onSetPlayerCount={handleSetPlayerCount}
       />
     </div>
   );

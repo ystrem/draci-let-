@@ -19,6 +19,9 @@ export interface GameState {
   enemiesDefeated: number;
   playerHealth: number;
   playerMaxHealth: number;
+  playerCount: number; // 1 to 4 players
+  playersHealth: number[]; // Health per active player
+  playersMaxHealth: number[]; // Max health per active player
   levelProgress: number; // 0 to 100
   selectedDragonId: string;
   dragonConfig: DragonConfig;
@@ -114,24 +117,32 @@ export const LEVELS: LevelConfig[] = [
     id: 1,
     title: "Kixskuske hory",
     subtitle: "Biom: Bouřlivé horské vrcholky",
-    goalDescription: "Porazte 15 horských tvorů (Nagů a dračích příšer), abyste unikli z bouřlivých vrcholků.",
-    targetProgress: 15, // 15 enemies to defeat
+    goalDescription: "Bojujte skrze bouřlivé vrcholy, přežijte nápor tvorů a poražte finálního Vládce Bouřných Štítů!",
+    targetProgress: 100,
     parallaxSpeedFactor: 1.0,
   },
   {
     id: 2,
     title: "Poušť Bojli",
     subtitle: "Biom: Zlaté písečné duny a písečná bouře",
-    goalDescription: "Přežijte pouštní žár a porazte obřího písečného červa vynořujícího se z hlubin.",
-    targetProgress: 100, // Distance progress (with boss spawning at 80% progress)
+    goalDescription: "Přežijte pouštní žár a poražte monstrózního Obřího písečného červa vynořujícího se z dun!",
+    targetProgress: 100,
     parallaxSpeedFactor: 1.2,
   },
   {
     id: 3,
     title: "Masivní les",
     subtitle: "Biom: Prastaré temné houštiny",
-    goalDescription: "Proleťte hustým lesem! Vyhýbejte se pevným větvím a kořenům stromů a přežijte útoky trpaslíků.",
-    targetProgress: 100, // Distance progress (reaches 100 to escape)
+    goalDescription: "Proleťte hustým lesem, vyhýbejte se kmenům a poražte mocného Prastarého lesního giganta!",
+    targetProgress: 100,
     parallaxSpeedFactor: 1.5,
+  },
+  {
+    id: 4,
+    title: "Mořské hlubiny",
+    subtitle: "Biom: Nekonečný oceán a podmořský žleb",
+    goalDescription: "Ponořte se do oceanických hlubin, poražte roje mořských tvorů a udolejte obřího Pravěkého Krakena!",
+    targetProgress: 100,
+    parallaxSpeedFactor: 1.8,
   }
 ];
