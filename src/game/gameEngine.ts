@@ -232,8 +232,8 @@ export class GameEngine {
     }
 
     // Keep state.playerHealth synced to Player 1 or max surviving
-    this.state.playerHealth = this.state.playersHealth[0] || 100;
-    this.state.playerMaxHealth = this.state.playersMaxHealth[0] || 100;
+    this.state.playerHealth = this.state.playersHealth[0] || 300;
+    this.state.playerMaxHealth = this.state.playersMaxHealth[0] || 300;
   }
 
   public setPlayerCount(count: number) {

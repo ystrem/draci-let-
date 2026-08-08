@@ -42,7 +42,7 @@ export const DRAGONS: DragonConfig[] = [
     colorHex: "#ef4444",
     speed: 6,
     fireRate: 350,
-    maxHealth: 100,
+    maxHealth: 300,
     element: "Ohnivý Výbuch",
     projectileColor: 0xff5500
   },
@@ -53,7 +53,7 @@ export const DRAGONS: DragonConfig[] = [
     colorHex: "#f97316",
     speed: 7,
     fireRate: 400,
-    maxHealth: 90,
+    maxHealth: 270,
     element: "Plazmový Výboj",
     projectileColor: 0xffaa00
   },
@@ -64,7 +64,7 @@ export const DRAGONS: DragonConfig[] = [
     colorHex: "#eab308",
     speed: 8,
     fireRate: 300,
-    maxHealth: 80,
+    maxHealth: 250,
     element: "Blesková Jiskra",
     projectileColor: 0xfff000
   },
@@ -75,7 +75,7 @@ export const DRAGONS: DragonConfig[] = [
     colorHex: "#22c55e",
     speed: 6,
     fireRate: 250,
-    maxHealth: 110,
+    maxHealth: 330,
     element: "Kyselinový Výstřel",
     projectileColor: 0x22ff55
   },
@@ -86,7 +86,7 @@ export const DRAGONS: DragonConfig[] = [
     colorHex: "#3b82f6",
     speed: 5,
     fireRate: 300,
-    maxHealth: 120,
+    maxHealth: 360,
     element: "Ledový Střep",
     projectileColor: 0x00aaff
   },
@@ -97,7 +97,7 @@ export const DRAGONS: DragonConfig[] = [
     colorHex: "#a855f7",
     speed: 7,
     fireRate: 320,
-    maxHealth: 100,
+    maxHealth: 300,
     element: "Pulzar Prázdnoty",
     projectileColor: 0xaa22ff
   }
