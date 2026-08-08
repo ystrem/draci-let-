@@ -10,7 +10,7 @@ export interface DragonConfig {
   projectileColor: number;
 }
 
-export type GameStatus = "menu" | "playing" | "level_complete" | "game_over" | "victory";
+export type GameStatus = "menu" | "playing" | "cave_shop" | "level_complete" | "game_over" | "victory";
 
 export interface GameState {
   status: GameStatus;
@@ -32,12 +32,17 @@ export interface GameState {
   bossMaxHealth: number;
   isPaused: boolean;
   mute: boolean;
+  // Upgrades purchased in Cave Sanctuary
+  healthUpgradeLevel: number;
+  fireRateUpgradeLevel: number;
+  damageUpgradeLevel: number;
+  speedUpgradeLevel: number;
 }
 
 export const DRAGONS: DragonConfig[] = [
   {
     id: "red",
-    name: "Ignis (Červený)",
+    name: "Azrak",
     baseHue: 0,
     colorHex: "#ef4444",
     speed: 6,
@@ -48,7 +53,7 @@ export const DRAGONS: DragonConfig[] = [
   },
   {
     id: "orange",
-    name: "Solaris (Oranžový)",
+    name: "Krteček",
     baseHue: 30,
     colorHex: "#f97316",
     speed: 7,
@@ -59,7 +64,7 @@ export const DRAGONS: DragonConfig[] = [
   },
   {
     id: "yellow",
-    name: "Aurelius (Žlutý)",
+    name: "Běs Sahary",
     baseHue: 60,
     colorHex: "#eab308",
     speed: 8,
@@ -70,7 +75,7 @@ export const DRAGONS: DragonConfig[] = [
   },
   {
     id: "green",
-    name: "Zenephyr (Zelený)",
+    name: "Zenephyr",
     baseHue: 120,
     colorHex: "#22c55e",
     speed: 6,
@@ -81,7 +86,7 @@ export const DRAGONS: DragonConfig[] = [
   },
   {
     id: "blue",
-    name: "Achelous (Modrý)",
+    name: "Modrá Bouře",
     baseHue: 200,
     colorHex: "#3b82f6",
     speed: 5,
@@ -92,7 +97,7 @@ export const DRAGONS: DragonConfig[] = [
   },
   {
     id: "purple",
-    name: "Nebula (Fialový)",
+    name: "Samara",
     baseHue: 280,
     colorHex: "#a855f7",
     speed: 7,
@@ -117,32 +122,32 @@ export const LEVELS: LevelConfig[] = [
     id: 1,
     title: "Kixskuske hory",
     subtitle: "Biom: Bouřlivé horské vrcholky",
-    goalDescription: "Bojujte skrze bouřlivé vrcholy, přežijte nápor tvorů a poražte finálního Vládce Bouřných Štítů!",
-    targetProgress: 100,
+    goalDescription: "Bojujte skrze bouřlivé vrcholy, přežijte dlouhý nápor tvorů a po průletu jeskyní vylepšete schopnosti!",
+    targetProgress: 160,
     parallaxSpeedFactor: 1.0,
   },
   {
     id: 2,
     title: "Poušť Bojli",
     subtitle: "Biom: Zlaté písečné duny a písečná bouře",
-    goalDescription: "Přežijte pouštní žár a poražte monstrózního Obřího písečného červa vynořujícího se z dun!",
-    targetProgress: 100,
+    goalDescription: "Přežijte dlouhý pouštní let, navštivte jeskynní svatyni a poražte obřího červa v dunách!",
+    targetProgress: 160,
     parallaxSpeedFactor: 1.2,
   },
   {
     id: 3,
     title: "Masivní les",
     subtitle: "Biom: Prastaré temné houštiny",
-    goalDescription: "Proleťte hustým lesem, vyhýbejte se kmenům a poražte mocného Prastarého lesního giganta!",
-    targetProgress: 100,
+    goalDescription: "Proleťte hlubokým lesním kaňonem, vstupte do mramorové jeskyně pro vylepšení a poražte giganta!",
+    targetProgress: 160,
     parallaxSpeedFactor: 1.5,
   },
   {
     id: 4,
     title: "Mořské hlubiny",
     subtitle: "Biom: Nekonečný oceán a podmořský žleb",
-    goalDescription: "Ponořte se do oceanických hlubin, poražte roje mořských tvorů a udolejte obřího Pravěkého Krakena!",
-    targetProgress: 100,
+    goalDescription: "Ponořte se do oceanického žlebu, vylepšete draka v krystalové jeskyni a poražte Pravěkého Krakena!",
+    targetProgress: 160,
     parallaxSpeedFactor: 1.8,
   }
 ];

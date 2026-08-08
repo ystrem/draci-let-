@@ -25,6 +25,11 @@ import {
   Skull,
   Swords,
   Activity,
+  Volume2,
+  VolumeX,
+  PlusCircle,
+  ArrowRight,
+  Egg,
 } from "lucide-react";
 
 interface EditorHUDProps {
@@ -38,6 +43,12 @@ interface EditorHUDProps {
   onSkipLevel: () => void;
   onSetPlayerCount?: (count: number) => void;
   onOpenMenu?: () => void;
+  onToggleMute?: () => void;
+  onUpgradeHealth?: () => void;
+  onUpgradeFireRate?: () => void;
+  onUpgradeDamage?: () => void;
+  onUpgradeSpeed?: () => void;
+  onNextLevelFromCave?: () => void;
 }
 
 const CHARACTERS_GALLERY = [
@@ -473,9 +484,16 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
   onSkipLevel,
   onSetPlayerCount,
   onOpenMenu,
+  onToggleMute,
+  onUpgradeHealth,
+  onUpgradeFireRate,
+  onUpgradeDamage,
+  onUpgradeSpeed,
+  onNextLevelFromCave,
 }) => {
   const [showCharactersModal, setShowCharactersModal] = useState(false);
   const [hideMenuOverlay, setHideMenuOverlay] = useState(false);
+  const [hatchingStage, setHatchingStage] = useState<number>(0);
   const currentLevelConfig = LEVELS[gameState.currentLevel - 1];
 
   const handleHueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -568,6 +586,23 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
 
         {/* Global Toolbar */}
         <div className="flex items-center gap-3">
+          <button
+            id="btn-sound-mute"
+            onClick={onToggleMute}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs transition font-bold"
+            title="Zapnout / Vypnout zvuky"
+          >
+            {gameState.mute ? (
+              <>
+                <VolumeX className="w-3.5 h-3.5 text-rose-400" /> <span className="text-rose-300">Zvuk VYPNUT</span>
+              </>
+            ) : (
+              <>
+                <Volume2 className="w-3.5 h-3.5 text-emerald-400" /> <span className="text-emerald-300">Zvuk ZAPNUT</span>
+              </>
+            )}
+          </button>
+
           {gameState.status === "playing" && (
             <>
               <button
@@ -685,28 +720,421 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
             </div>
           )}
 
-          {/* Victory Screen */}
+          {/* Cave Sanctuary / Upgrade Shop Overlay */}
+          {gameState.status === "cave_shop" && (
+            <div id="overlay-cave-shop" className="absolute inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex flex-col justify-between p-6 overflow-y-auto">
+              <div className="max-w-4xl mx-auto w-full my-auto">
+                {/* Header */}
+                <div className="text-center mb-6">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 text-xs font-bold uppercase tracking-wider mb-2">
+                    <Sparkles className="w-4 h-4 text-indigo-400" /> Vlet do Dračí Jeskyně – Biom {gameState.currentLevel} Dokončen!
+                  </div>
+                  <h2 className="text-3xl font-black text-white uppercase tracking-tight">
+                    Tajemná Jeskynní Svatyně & Vylepšení
+                  </h2>
+                  <p className="text-slate-400 text-xs md:text-sm mt-1 max-w-xl mx-auto leading-relaxed">
+                    Váš drak bezpečně přistál v krystalové jeskyni. Využijte nasbírané krystaly a body k vylepšení životů, rychlosti letu a síly střelby před vstupem do dalšího biomu!
+                  </p>
+                </div>
+
+                {/* Balance & Dragon Status */}
+                <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 mb-6 flex flex-wrap items-center justify-between gap-4 shadow-xl">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center border shadow-inner" style={{ backgroundColor: `${gameState.dragonConfig.colorHex}22`, borderColor: gameState.dragonConfig.colorHex }}>
+                      <Flame className="w-6 h-6" style={{ color: gameState.dragonConfig.colorHex }} />
+                    </div>
+                    <div>
+                      <div className="text-sm font-extrabold text-white">{gameState.dragonConfig.name}</div>
+                      <div className="text-xs text-slate-400">{gameState.dragonConfig.element} • Hráč 1</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-6">
+                    <div className="text-right">
+                      <div className="text-[10px] uppercase font-bold text-slate-500">Dostupné Krystaly / Skóre</div>
+                      <div className="text-2xl font-black font-mono text-amber-400">{gameState.score} bodů</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Upgrade Shop Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                  {/* Health Upgrade */}
+                  {(() => {
+                    const hpCost = 200 + (gameState.healthUpgradeLevel * 100);
+                    const canAfford = gameState.score >= hpCost;
+                    return (
+                      <div className="bg-slate-900/90 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-4 transition flex flex-col justify-between gap-3 shadow-lg">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+                              <Heart className="w-6 h-6 fill-emerald-500/20" />
+                            </div>
+                            <div>
+                              <div className="text-sm font-bold text-white flex items-center gap-2">
+                                Max. Zdraví & Vyléčení
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono">
+                                  Lvl {gameState.healthUpgradeLevel}
+                                </span>
+                              </div>
+                              <div className="text-xs text-slate-400 mt-0.5">
+                                +50 Max. HP a plně obnoví zdraví všem drakům.
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between border-t border-slate-800/80 pt-3">
+                          <span className="text-xs font-mono font-bold text-amber-400">{hpCost} bodů</span>
+                          <button
+                            onClick={onUpgradeHealth}
+                            disabled={!canAfford}
+                            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                              canAfford
+                                ? "bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-md shadow-emerald-500/20 cursor-pointer"
+                                : "bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed"
+                            }`}
+                          >
+                            <PlusCircle className="w-4 h-4" /> Vylepšit Životy
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Fire Rate Upgrade */}
+                  {(() => {
+                    const frCost = 250 + (gameState.fireRateUpgradeLevel * 120);
+                    const canAfford = gameState.score >= frCost;
+                    return (
+                      <div className="bg-slate-900/90 border border-slate-800 hover:border-rose-500/50 rounded-2xl p-4 transition flex flex-col justify-between gap-3 shadow-lg">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400">
+                              <Sword className="w-6 h-6" />
+                            </div>
+                            <div>
+                              <div className="text-sm font-bold text-white flex items-center gap-2">
+                                Kadence Střelby
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-mono">
+                                  Lvl {gameState.fireRateUpgradeLevel}
+                                </span>
+                              </div>
+                              <div className="text-xs text-slate-400 mt-0.5">
+                                Sníží prodlevu mezi výstřely o 35ms (Rychlejší chrlění ohně).
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between border-t border-slate-800/80 pt-3">
+                          <span className="text-xs font-mono font-bold text-amber-400">{frCost} bodů</span>
+                          <button
+                            onClick={onUpgradeFireRate}
+                            disabled={!canAfford}
+                            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                              canAfford
+                                ? "bg-rose-500 hover:bg-rose-400 text-slate-950 shadow-md shadow-rose-500/20 cursor-pointer"
+                                : "bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed"
+                            }`}
+                          >
+                            <PlusCircle className="w-4 h-4" /> Zrychlit Střelbu
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Damage Upgrade */}
+                  {(() => {
+                    const dmgCost = 300 + (gameState.damageUpgradeLevel * 150);
+                    const canAfford = gameState.score >= dmgCost;
+                    return (
+                      <div className="bg-slate-900/90 border border-slate-800 hover:border-amber-500/50 rounded-2xl p-4 transition flex flex-col justify-between gap-3 shadow-lg">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400">
+                              <Zap className="w-6 h-6" />
+                            </div>
+                            <div>
+                              <div className="text-sm font-bold text-white flex items-center gap-2">
+                                Síla Ohnivého Výboje
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono">
+                                  Lvl {gameState.damageUpgradeLevel}
+                                </span>
+                              </div>
+                              <div className="text-xs text-slate-400 mt-0.5">
+                                Zvýší udílené poškození o +35% proti všem nepřátelům i bossovi.
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between border-t border-slate-800/80 pt-3">
+                          <span className="text-xs font-mono font-bold text-amber-400">{dmgCost} bodů</span>
+                          <button
+                            onClick={onUpgradeDamage}
+                            disabled={!canAfford}
+                            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                              canAfford
+                                ? "bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-md shadow-amber-500/20 cursor-pointer"
+                                : "bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed"
+                            }`}
+                          >
+                            <PlusCircle className="w-4 h-4" /> Zvýšit Sílu
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Speed Upgrade */}
+                  {(() => {
+                    const spdCost = 200 + (gameState.speedUpgradeLevel * 100);
+                    const canAfford = gameState.score >= spdCost;
+                    return (
+                      <div className="bg-slate-900/90 border border-slate-800 hover:border-sky-500/50 rounded-2xl p-4 transition flex flex-col justify-between gap-3 shadow-lg">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2.5 rounded-xl bg-sky-500/10 border border-sky-500/30 text-sky-400">
+                              <Compass className="w-6 h-6" />
+                            </div>
+                            <div>
+                              <div className="text-sm font-bold text-white flex items-center gap-2">
+                                Rychlost Letu Křídel
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 font-mono">
+                                  Lvl {gameState.speedUpgradeLevel}
+                                </span>
+                              </div>
+                              <div className="text-xs text-slate-400 mt-0.5">
+                                Zvýší rychlost manévrování o +1 px/f pro snazší vyhýbání.
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between border-t border-slate-800/80 pt-3">
+                          <span className="text-xs font-mono font-bold text-amber-400">{spdCost} bodů</span>
+                          <button
+                            onClick={onUpgradeSpeed}
+                            disabled={!canAfford}
+                            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                              canAfford
+                                ? "bg-sky-500 hover:bg-sky-400 text-slate-950 shadow-md shadow-sky-500/20 cursor-pointer"
+                                : "bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed"
+                            }`}
+                          >
+                            <PlusCircle className="w-4 h-4" /> Zrychlit Let
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* Continue to Next Level Button */}
+                <div className="flex justify-center">
+                  <button
+                    onClick={onNextLevelFromCave}
+                    className="px-8 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 text-slate-950 font-black text-sm uppercase tracking-wider hover:brightness-110 transition flex items-center gap-2 shadow-xl shadow-emerald-500/25 cursor-pointer"
+                  >
+                    Opustit Jeskyni a Vletět do Biom {gameState.currentLevel + 1}
+                    <ArrowRight className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Victory Screen with Dragon Nest Cutscene & Hatching Egg */}
           {gameState.status === "victory" && (
-            <div id="overlay-victory" className="absolute inset-0 z-50 bg-slate-950/95 flex flex-col items-center justify-center p-6 text-center">
-              <div className="w-16 h-16 rounded-full bg-amber-500/10 border border-amber-500 flex items-center justify-center mb-4">
-                <Trophy className="w-8 h-8 text-amber-400" />
+            <div id="overlay-victory" className="absolute inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center overflow-y-auto">
+              <div className="max-w-2xl w-full my-auto flex flex-col items-center">
+                {/* Victory badge */}
+                <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/40 flex items-center justify-center mb-3 shadow-lg shadow-amber-500/20">
+                  <Trophy className="w-7 h-7 text-amber-400" />
+                </div>
+                <h2 className="text-3xl md:text-4xl font-extrabold text-amber-400 tracking-tight uppercase mb-1">
+                  VÍTĚZNÝ FINÁLNÍ LET!
+                </h2>
+                <p className="text-slate-300 font-semibold text-xs md:text-sm mb-4">
+                  Poražen Pravěký Kraken i všichni vládci biomů!
+                </p>
+
+                {/* DRAGON NEST STAGE */}
+                <div className="w-full bg-slate-900/90 border border-amber-500/30 rounded-3xl p-6 mb-6 shadow-2xl relative overflow-hidden flex flex-col items-center">
+                  <div className="text-xs font-extrabold text-amber-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4" /> Dračí Hnízdo na Vrcholku Skály
+                  </div>
+
+                  {/* Nest Visual Canvas Box */}
+                  <div className="relative w-64 h-56 flex flex-col items-center justify-end my-2">
+                    
+                    {/* Twig Nest Container */}
+                    <div className="absolute bottom-2 w-56 h-20 rounded-[50%] bg-gradient-to-b from-amber-950 via-amber-900/80 to-stone-900 border-2 border-amber-800/60 shadow-2xl flex items-center justify-center z-10 overflow-hidden">
+                      {/* Twigs & embers inside nest */}
+                      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-amber-500/30 via-transparent to-transparent animate-pulse" />
+                      <div className="text-[10px] text-amber-600/60 font-mono tracking-widest uppercase select-none">
+                        •••• Teplé dračí hnízdo ••••
+                      </div>
+                    </div>
+
+                    {/* Egg / Baby Dragon State */}
+                    {hatchingStage === 0 && (
+                      <div
+                        onClick={() => setHatchingStage(1)}
+                        className="relative z-20 mb-6 cursor-pointer group flex flex-col items-center transition transform hover:scale-105 active:scale-95"
+                        title="Klepni na vajíčko!"
+                      >
+                        {/* Uncracked Egg */}
+                        <div
+                          className="w-28 h-36 rounded-[50%_50%_50%_50%/60%_60%_40%_40%] border-4 shadow-2xl transition duration-300 animate-bounce flex items-center justify-center relative overflow-hidden"
+                          style={{
+                            backgroundColor: `${gameState.dragonConfig.colorHex}dd`,
+                            borderColor: "#fbbf24",
+                            boxShadow: `0 0 30px ${gameState.dragonConfig.colorHex}88`
+                          }}
+                        >
+                          <div className="absolute inset-0 bg-gradient-to-tr from-black/40 via-transparent to-white/30" />
+                          <div className="w-20 h-24 border-t-2 border-b-2 border-amber-300/40 rounded-full rotate-12" />
+                          <div className="text-2xl select-none animate-pulse">✨</div>
+                        </div>
+
+                        <div className="mt-3 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-[11px] font-bold uppercase tracking-wider animate-pulse">
+                          👉 Klepni na vajíčko pro líhnutí!
+                        </div>
+                      </div>
+                    )}
+
+                    {hatchingStage === 1 && (
+                      <div
+                        onClick={() => setHatchingStage(2)}
+                        className="relative z-20 mb-6 cursor-pointer flex flex-col items-center transition transform hover:scale-105 active:scale-95"
+                        title="Klepni ještě jednou pro vyklouznutí!"
+                      >
+                        {/* Cracking Egg */}
+                        <div
+                          className="w-28 h-36 rounded-[50%_50%_50%_50%/60%_60%_40%_40%] border-4 shadow-2xl flex items-center justify-center relative overflow-hidden animate-pulse"
+                          style={{
+                            backgroundColor: `${gameState.dragonConfig.colorHex}ee`,
+                            borderColor: "#f59e0b",
+                            boxShadow: `0 0 40px #f59e0b`
+                          }}
+                        >
+                          {/* Light Rays */}
+                          <div className="absolute inset-0 bg-amber-300/30 animate-ping" />
+                          
+                          {/* Crack Lines SVG */}
+                          <svg className="absolute inset-0 w-full h-full text-amber-200 fill-none stroke-current stroke-2">
+                            <path d="M50 10 L42 35 L58 55 L45 80 L52 110" />
+                            <path d="M42 35 L20 45" />
+                            <path d="M58 55 L80 65" />
+                          </svg>
+
+                          <div className="text-xl text-white font-extrabold z-10 animate-bounce">KŘUP!</div>
+                        </div>
+
+                        <div className="mt-3 px-3 py-1 rounded-full bg-amber-400 text-slate-950 text-[11px] font-black uppercase tracking-wider shadow-lg">
+                          ✨ Skořápka praská! Klepni znovu!
+                        </div>
+                      </div>
+                    )}
+
+                    {hatchingStage === 2 && (
+                      <div
+                        className="relative z-20 mb-4 cursor-pointer flex flex-col items-center transition transform hover:scale-105 active:scale-95"
+                      >
+                        {/* Hatched Baby Dragon peeking out */}
+                        <div className="relative w-32 h-40 flex flex-col items-center justify-end">
+                          
+                          {/* Baby Dragon SVG */}
+                          <div className="relative w-24 h-24 mb-[-12px] z-20 flex items-center justify-center">
+                            <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-xl animate-bounce">
+                              {/* Tiny Wings */}
+                              <path d="M25 45 Q5 30 15 55 Q25 50 30 45 Z" fill={gameState.dragonConfig.colorHex} />
+                              <path d="M75 45 Q95 30 85 55 Q75 50 70 45 Z" fill={gameState.dragonConfig.colorHex} />
+                              
+                              {/* Baby Head */}
+                              <ellipse cx="50" cy="45" rx="26" ry="22" fill={gameState.dragonConfig.colorHex} />
+                              
+                              {/* Cute Horns */}
+                              <polygon points="38,25 32,10 44,22" fill="#fbbf24" />
+                              <polygon points="62,25 68,10 56,22" fill="#fbbf24" />
+                              
+                              {/* Glossy Cute Eyes */}
+                              <circle cx="38" cy="42" r="6" fill="#0f172a" />
+                              <circle cx="62" cy="42" r="6" fill="#0f172a" />
+                              <circle cx="40" cy="40" r="2" fill="#ffffff" />
+                              <circle cx="64" cy="40" r="2" fill="#ffffff" />
+                              
+                              {/* Rosy Cheeks */}
+                              <ellipse cx="32" cy="48" rx="4" ry="2" fill="#f43f5e" opacity="0.6" />
+                              <ellipse cx="68" cy="48" rx="4" ry="2" fill="#f43f5e" opacity="0.6" />
+                              
+                              {/* Sweet Smile */}
+                              <path d="M43 50 Q50 56 57 50" stroke="#0f172a" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+                              
+                              {/* Fire Spark Puff */}
+                              <circle cx="50" cy="60" r="4" fill="#fbbf24" className="animate-ping" />
+                            </svg>
+                          </div>
+
+                          {/* Bottom Broken Shell */}
+                          <div
+                            className="w-28 h-20 rounded-[0_0_50%_50%/0_0_60%_60%] border-4 shadow-xl z-10 relative overflow-hidden"
+                            style={{
+                              backgroundColor: `${gameState.dragonConfig.colorHex}dd`,
+                              borderColor: "#fbbf24"
+                            }}
+                          >
+                          </div>
+                        </div>
+
+                        <div className="px-3 py-1 rounded-full bg-emerald-500 text-slate-950 text-[11px] font-black uppercase tracking-wider shadow-lg flex items-center gap-1">
+                          <Sparkles className="w-3.5 h-3.5" /> Malé mládě draka {gameState.dragonConfig.name} se vylíhlo!
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Cutscene Description text */}
+                  <p className="text-xs text-slate-300 max-w-md mt-2 leading-relaxed">
+                    {hatchingStage < 2 ? (
+                      <span>V rohu prastaré jeskyně leží hřejivé hnízdo s dračím vajíčkem, které přejímá barvu a element vašeho draka <strong className="text-amber-400">{gameState.dragonConfig.name}</strong>.</span>
+                    ) : (
+                      <span>Z vajíčka vykouklo roztomilé drakátko se zářivýma očima v barvě <strong className="text-amber-400">{gameState.dragonConfig.name}</strong>! Přenáší tradici ohně a kouzel do nové generace!</span>
+                    )}
+                  </p>
+                </div>
+
+                {/* Final Stats Summary */}
+                <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 mb-6 w-full grid grid-cols-3 gap-2 text-center">
+                  <div>
+                    <div className="text-[10px] text-slate-500 uppercase font-bold">Celkové Skóre</div>
+                    <div className="text-lg font-black font-mono text-amber-400">{gameState.score}</div>
+                  </div>
+                  <div className="border-x border-slate-800">
+                    <div className="text-[10px] text-slate-500 uppercase font-bold">Monstra Poražena</div>
+                    <div className="text-lg font-black font-mono text-emerald-400">{gameState.enemiesDefeated}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] text-slate-500 uppercase font-bold">Vylepšení Doma</div>
+                    <div className="text-lg font-black font-mono text-sky-400">
+                      {gameState.healthUpgradeLevel + gameState.fireRateUpgradeLevel + gameState.damageUpgradeLevel + gameState.speedUpgradeLevel}x
+                    </div>
+                  </div>
+                </div>
+
+                {/* Buttons */}
+                <div className="flex gap-3">
+                  <button
+                    id="btn-restart"
+                    onClick={() => {
+                      setHatchingStage(0);
+                      onResetGame();
+                    }}
+                    className="px-8 py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-rose-500 text-slate-950 font-black hover:brightness-110 transition flex items-center gap-2 text-xs uppercase tracking-wider shadow-lg shadow-amber-500/25 cursor-pointer"
+                  >
+                    <RotateCcw className="w-4 h-4" /> Hrát Znovu Od Začátku
+                  </button>
+                </div>
               </div>
-              <h2 className="text-4xl font-extrabold text-amber-400 tracking-tight uppercase mb-1">Velký vítězný let!</h2>
-              <p className="text-slate-300 font-semibold mb-3">Všechny biomy dokončeny</p>
-              <p className="text-slate-400 max-w-md text-sm mb-6 leading-relaxed">
-                Gratulujeme! Úspěšně jste provedli tým draků všemi nebezpečnými krajinami – od bouřlivých vrcholů Kixskuských hor přes duny pouště Bojli až po křivolaké houštiny Masivního lesa.
-              </p>
-              <div className="bg-amber-950/20 border border-amber-500/20 rounded-xl p-5 mb-8 min-w-xs">
-                <div className="text-xs text-amber-500 uppercase tracking-wider font-bold mb-1">Dosažené finální skóre</div>
-                <div className="text-4xl font-black font-mono text-white tracking-widest">{gameState.score}</div>
-              </div>
-              <button
-                id="btn-restart"
-                onClick={onResetGame}
-                className="px-8 py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-rose-500 text-slate-950 font-black hover:brightness-110 transition flex items-center gap-2 text-sm shadow-lg shadow-amber-500/35"
-              >
-                <RotateCcw className="w-4 h-4" /> Restartovat hru od začátku
-              </button>
             </div>
           )}
 
@@ -748,6 +1176,14 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
                       </div>
 
                       <div className="flex flex-wrap gap-2">
+                        <button
+                          onClick={onToggleMute}
+                          className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 text-xs font-bold transition flex items-center gap-2 shadow-md"
+                          title="Zapnout / Vypnout zvuky"
+                        >
+                          {gameState.mute ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
+                          Zvuky: {gameState.mute ? "Vypnuty" : "Zapnuty"}
+                        </button>
                         <button
                           onClick={() => setShowCharactersModal(true)}
                           className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 text-xs font-bold transition flex items-center gap-2 shadow-md"
@@ -925,10 +1361,20 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
                     })}
                   </div>
 
-                  {/* Level Goal Description and Stats */}
+                  {/* Level Goal Description, Sound Toggle, and Stats */}
                   <div className="flex flex-col gap-1.5 items-end text-right bg-slate-950/80 p-3 rounded-xl border border-slate-900 backdrop-blur-sm pointer-events-auto">
-                    <div className="text-xs font-bold text-amber-400 flex items-center gap-1 uppercase tracking-wider">
-                      <Target className="w-3.5 h-3.5" /> Biom {gameState.currentLevel}: {currentLevelConfig.title}
+                    <div className="flex items-center gap-2 justify-between w-full">
+                      <button
+                        onClick={onToggleMute}
+                        className="px-2.5 py-1 rounded-lg bg-slate-900/90 hover:bg-slate-800 border border-slate-800 text-[10px] font-bold text-slate-300 transition flex items-center gap-1 shadow-sm"
+                        title="Zapnout / Vypnout zvuky"
+                      >
+                        {gameState.mute ? <VolumeX className="w-3 h-3 text-rose-400" /> : <Volume2 className="w-3 h-3 text-emerald-400" />}
+                        <span>{gameState.mute ? "Ticho" : "Zvuk"}</span>
+                      </button>
+                      <div className="text-xs font-bold text-amber-400 flex items-center gap-1 uppercase tracking-wider">
+                        <Target className="w-3.5 h-3.5" /> Biom {gameState.currentLevel}: {currentLevelConfig.title}
+                      </div>
                     </div>
                     <div className="text-[10px] text-slate-400 max-w-xs">{currentLevelConfig.goalDescription}</div>
                     <div className="flex gap-4 mt-1 border-t border-slate-900 pt-1.5 w-full justify-end">

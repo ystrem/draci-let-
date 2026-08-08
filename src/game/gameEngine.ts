@@ -5,6 +5,8 @@ import { Obstacle } from "./obstacles";
 import { ParticleSystem } from "./particles";
 import { ParallaxBackground } from "./background";
 import { GameState, DragonConfig, DRAGONS, LEVELS } from "../types";
+import { soundManager } from "./soundManager";
+import { CollectibleItem, ItemType } from "./items";
 
 export class GameEngine {
   private app!: Application;
@@ -22,6 +24,7 @@ export class GameEngine {
   private playerProjectiles: Projectile[] = [];
   private enemyProjectiles: Projectile[] = [];
   private obstacles: Obstacle[] = [];
+  private items: CollectibleItem[] = [];
 
   // Game Loop States
   private isInitialized: boolean = false;
@@ -42,6 +45,7 @@ export class GameEngine {
   // Spawning variables
   private enemySpawnTimer: number = 0;
   private obstacleSpawnTimer: number = 0;
+  private itemSpawnTimer: number = 0;
   private bossSpawned: boolean = false;
   private bossRef: Enemy | null = null;
 
@@ -82,6 +86,10 @@ export class GameEngine {
       bossMaxHealth: 250,
       isPaused: false,
       mute: false,
+      healthUpgradeLevel: 0,
+      fireRateUpgradeLevel: 0,
+      damageUpgradeLevel: 0,
+      speedUpgradeLevel: 0,
     };
   }
 
@@ -160,6 +168,7 @@ export class GameEngine {
       // Bind event listeners
       window.addEventListener("keydown", this.handleKeyDown);
       window.addEventListener("keyup", this.handleKeyUp);
+      window.addEventListener("blur", this.handleBlur);
 
       // Start ticker
       if (this.app.ticker) {
@@ -249,6 +258,14 @@ export class GameEngine {
     this.state.levelProgress = 0;
     this.state.enemiesDefeated = 0;
     
+    if (levelId === 1) {
+      this.state.score = 0;
+      this.state.healthUpgradeLevel = 0;
+      this.state.fireRateUpgradeLevel = 0;
+      this.state.damageUpgradeLevel = 0;
+      this.state.speedUpgradeLevel = 0;
+    }
+
     // Reset player healths for all active players
     this.setupPlayers();
 
@@ -275,11 +292,91 @@ export class GameEngine {
     this.triggerStateChange();
   }
 
+  // --- CAVE SANCTUARY UPGRADES ---
+  public upgradeHealth(): boolean {
+    const cost = 200 + (this.state.healthUpgradeLevel * 100);
+    if (this.state.score >= cost) {
+      this.state.score -= cost;
+      this.state.healthUpgradeLevel += 1;
+      for (let i = 0; i < this.state.playersMaxHealth.length; i++) {
+        this.state.playersMaxHealth[i] += 50;
+        this.state.playersHealth[i] = this.state.playersMaxHealth[i];
+      }
+      this.state.playerMaxHealth += 50;
+      this.state.playerHealth = this.state.playerMaxHealth;
+      soundManager.playPowerup();
+      this.triggerStateChange();
+      return true;
+    }
+    return false;
+  }
+
+  public upgradeFireRate(): boolean {
+    const cost = 250 + (this.state.fireRateUpgradeLevel * 120);
+    if (this.state.score >= cost) {
+      this.state.score -= cost;
+      this.state.fireRateUpgradeLevel += 1;
+      this.state.manualFireRate = Math.max(100, this.state.manualFireRate - 35);
+      this.state.dragonConfig.fireRate = this.state.manualFireRate;
+      for (const drag of this.playerDragons) {
+        drag.fireRate = this.state.manualFireRate;
+      }
+      soundManager.playPowerup();
+      this.triggerStateChange();
+      return true;
+    }
+    return false;
+  }
+
+  public upgradeDamage(): boolean {
+    const cost = 300 + (this.state.damageUpgradeLevel * 150);
+    if (this.state.score >= cost) {
+      this.state.score -= cost;
+      this.state.damageUpgradeLevel += 1;
+      soundManager.playPowerup();
+      this.triggerStateChange();
+      return true;
+    }
+    return false;
+  }
+
+  public upgradeSpeed(): boolean {
+    const cost = 200 + (this.state.speedUpgradeLevel * 100);
+    if (this.state.score >= cost) {
+      this.state.score -= cost;
+      this.state.speedUpgradeLevel += 1;
+      this.state.manualSpeed = Math.min(12, this.state.manualSpeed + 1);
+      this.state.dragonConfig.speed = this.state.manualSpeed;
+      for (const drag of this.playerDragons) {
+        drag.speed = this.state.manualSpeed;
+      }
+      soundManager.playPowerup();
+      this.triggerStateChange();
+      return true;
+    }
+    return false;
+  }
+
+  public nextLevelFromCave() {
+    if (this.state.currentLevel < 4) {
+      this.startLevel(this.state.currentLevel + 1);
+    } else {
+      this.state.status = "victory";
+      this.triggerStateChange();
+    }
+  }
+
   // Stop level loop
   public stop() {
     this.isRunning = false;
     this.clearLists();
     this.triggerStateChange();
+  }
+
+  public toggleMute(): boolean {
+    this.state.mute = soundManager.toggleMute();
+    this.triggerStateChange();
+    return this.state.mute;
   }
 
   private clearLists() {
@@ -295,6 +392,9 @@ export class GameEngine {
 
     for (const obst of this.obstacles) obst.destroy();
     this.obstacles = [];
+
+    for (const item of this.items) item.destroy();
+    this.items = [];
 
     if (this.particles) {
       this.particles.clear();
@@ -382,6 +482,10 @@ export class GameEngine {
   private handleKeyUp = (e: KeyboardEvent) => {
     this.keys[e.key] = false;
     this.keys[e.code] = false;
+  };
+
+  private handleBlur = () => {
+    this.keys = {};
   };
 
   // Trigger screen shake arcade feedback
@@ -480,41 +584,41 @@ export class GameEngine {
         let firePressed = false;
         let specialPressed = false;
 
-        // Player 1 controls (WASD or Arrow keys if alone, or Gamepad 0)
+        // Player 1 controls (WASD or Arrow keys if single player, or Gamepad 0)
         if (pIdx === 0) {
-          if (this.keys["KeyW"] || this.keys["w"] || (this.playerDragons.length === 1 && (this.keys["ArrowUp"] || this.keys["Up"]))) dy -= 1;
-          if (this.keys["KeyS"] || this.keys["s"] || (this.playerDragons.length === 1 && (this.keys["ArrowDown"] || this.keys["Down"]))) dy += 1;
-          if (this.keys["KeyA"] || this.keys["a"] || (this.playerDragons.length === 1 && (this.keys["ArrowLeft"] || this.keys["Left"]))) dx -= 1;
-          if (this.keys["KeyD"] || this.keys["d"] || (this.playerDragons.length === 1 && (this.keys["ArrowRight"] || this.keys["Right"]))) dx += 1;
-          if (this.keys["Space"] || this.keys[" "] || this.keys["KeyF"] || this.keys["f"]) firePressed = true;
-          if (this.keys["KeyE"] || this.keys["e"] || this.keys["KeyQ"] || this.keys["q"] || this.keys["ShiftLeft"]) specialPressed = true;
+          if (this.keys["KeyW"] || this.keys["w"] || this.keys["W"] || (this.playerDragons.length === 1 && (this.keys["ArrowUp"] || this.keys["Up"]))) dy -= 1;
+          if (this.keys["KeyS"] || this.keys["s"] || this.keys["S"] || (this.playerDragons.length === 1 && (this.keys["ArrowDown"] || this.keys["Down"]))) dy += 1;
+          if (this.keys["KeyA"] || this.keys["a"] || this.keys["A"] || (this.playerDragons.length === 1 && (this.keys["ArrowLeft"] || this.keys["Left"]))) dx -= 1;
+          if (this.keys["KeyD"] || this.keys["d"] || this.keys["D"] || (this.playerDragons.length === 1 && (this.keys["ArrowRight"] || this.keys["Right"]))) dx += 1;
+          if (this.keys["Space"] || this.keys[" "] || this.keys["KeyF"] || this.keys["f"] || this.keys["F"]) firePressed = true;
+          if (this.keys["KeyE"] || this.keys["e"] || this.keys["E"] || this.keys["KeyQ"] || this.keys["q"] || this.keys["Q"] || this.keys["ShiftLeft"]) specialPressed = true;
         }
-        // Player 2 controls (Arrow keys, Up/Down/Left/Right, Enter/Shift)
+        // Player 2 controls (Arrow keys or IJKL, Enter / ShiftRight for firing)
         else if (pIdx === 1) {
-          if (this.keys["ArrowUp"] || this.keys["Up"] || (this.playerDragons.length === 2 && (this.keys["KeyI"] || this.keys["i"]))) dy -= 1;
-          if (this.keys["ArrowDown"] || this.keys["Down"] || (this.playerDragons.length === 2 && (this.keys["KeyK"] || this.keys["k"]))) dy += 1;
-          if (this.keys["ArrowLeft"] || this.keys["Left"] || (this.playerDragons.length === 2 && (this.keys["KeyJ"] || this.keys["j"]))) dx -= 1;
-          if (this.keys["ArrowRight"] || this.keys["Right"] || (this.playerDragons.length === 2 && (this.keys["KeyL"] || this.keys["l"]))) dx += 1;
-          if (this.keys["Enter"] || this.keys["ShiftRight"] || this.keys["Numpad0"] || this.keys["0"] || this.keys["Space"]) firePressed = true;
-          if (this.keys["NumpadDecimal"] || this.keys["Delete"] || this.keys["ControlRight"] || this.keys["KeyM"]) specialPressed = true;
+          if (this.keys["ArrowUp"] || this.keys["Up"] || (this.playerDragons.length === 2 && (this.keys["KeyI"] || this.keys["i"] || this.keys["I"]))) dy -= 1;
+          if (this.keys["ArrowDown"] || this.keys["Down"] || (this.playerDragons.length === 2 && (this.keys["KeyK"] || this.keys["k"] || this.keys["K"]))) dy += 1;
+          if (this.keys["ArrowLeft"] || this.keys["Left"] || (this.playerDragons.length === 2 && (this.keys["KeyJ"] || this.keys["j"] || this.keys["J"]))) dx -= 1;
+          if (this.keys["ArrowRight"] || this.keys["Right"] || (this.playerDragons.length === 2 && (this.keys["KeyL"] || this.keys["l"] || this.keys["L"]))) dx += 1;
+          if (this.keys["Enter"] || this.keys["ShiftRight"] || this.keys["Numpad0"] || this.keys["ControlRight"]) firePressed = true;
+          if (this.keys["NumpadDecimal"] || this.keys["Delete"] || this.keys["KeyM"] || this.keys["m"] || this.keys["M"] || this.keys["KeyO"] || this.keys["o"] || this.keys["O"]) specialPressed = true;
         }
         // Player 3 controls (I, K, J, L, O/U)
         else if (pIdx === 2) {
-          if (this.keys["KeyI"] || this.keys["i"]) dy -= 1;
-          if (this.keys["KeyK"] || this.keys["k"]) dy += 1;
-          if (this.keys["KeyJ"] || this.keys["j"]) dx -= 1;
-          if (this.keys["KeyL"] || this.keys["l"]) dx += 1;
-          if (this.keys["KeyO"] || this.keys["o"] || this.keys["KeyU"] || this.keys["u"]) firePressed = true;
-          if (this.keys["KeyP"] || this.keys["p"] || this.keys["KeyY"] || this.keys["y"]) specialPressed = true;
+          if (this.keys["KeyI"] || this.keys["i"] || this.keys["I"]) dy -= 1;
+          if (this.keys["KeyK"] || this.keys["k"] || this.keys["K"]) dy += 1;
+          if (this.keys["KeyJ"] || this.keys["j"] || this.keys["J"]) dx -= 1;
+          if (this.keys["KeyL"] || this.keys["l"] || this.keys["L"]) dx += 1;
+          if (this.keys["KeyO"] || this.keys["o"] || this.keys["O"] || this.keys["KeyU"] || this.keys["u"] || this.keys["U"]) firePressed = true;
+          if (this.keys["KeyP"] || this.keys["p"] || this.keys["P"] || this.keys["KeyY"] || this.keys["y"] || this.keys["Y"]) specialPressed = true;
         }
-        // Player 4 controls (Numpad 8, 5, 4, 6 or 8, 5, 4, 6, NumpadEnter)
+        // Player 4 controls (Numpad 8, 5, 4, 6, NumpadEnter)
         else if (pIdx === 3) {
           if (this.keys["Numpad8"] || this.keys["8"]) dy -= 1;
           if (this.keys["Numpad5"] || this.keys["Numpad2"] || this.keys["5"] || this.keys["2"]) dy += 1;
           if (this.keys["Numpad4"] || this.keys["4"]) dx -= 1;
           if (this.keys["Numpad6"] || this.keys["6"]) dx += 1;
-          if (this.keys["NumpadEnter"] || this.keys["NumpadDecimal"] || this.keys["+"] || this.keys["KeyP"]) firePressed = true;
-          if (this.keys["Numpad3"] || this.keys["Numpad9"] || this.keys["KeyM"]) specialPressed = true;
+          if (this.keys["NumpadEnter"] || this.keys["NumpadDecimal"] || this.keys["+"]) firePressed = true;
+          if (this.keys["Numpad3"] || this.keys["Numpad9"] || this.keys["KeyM"] || this.keys["m"] || this.keys["M"]) specialPressed = true;
         }
 
         // Check Gamepad inputs for this player
@@ -544,7 +648,10 @@ export class GameEngine {
         }
 
         if (dx !== 0 || dy !== 0) {
-          dragon.move(dx, dy, 800, 450);
+          dragon.move(dx, dy, 800, 450, dt);
+          if (dy < -0.1) {
+            soundManager.playJump();
+          }
         }
 
         // --- PRIMARY FIRING (Multi-Attack Varieties) ---
@@ -556,6 +663,7 @@ export class GameEngine {
             const isPlasma = pIdx === 1;
 
             if (isPlasma) {
+              soundManager.playShoot("plasma");
               // Heavy Plasma Super Wave
               const proj = new Projectile({
                 x: dragon.x + 35,
@@ -570,6 +678,7 @@ export class GameEngine {
               this.playerProjectiles.push(proj);
               this.gameStage.addChild(proj.container);
             } else if (isSpread) {
+              soundManager.playShoot("fire");
               // Triple Spread Fireball Shot (Fan Arc)
               const angles = [-1.8, 0, 1.8];
               angles.forEach((vy) => {
@@ -587,6 +696,7 @@ export class GameEngine {
                 this.gameStage.addChild(proj.container);
               });
             } else {
+              soundManager.playShoot("laser_beam");
               // High-speed Laser Beam
               const proj = new Projectile({
                 x: dragon.x + 35,
@@ -608,6 +718,7 @@ export class GameEngine {
         if (specialPressed) {
           if (now - dragon.lastSpecialFired >= dragon.specialCooldown) {
             dragon.lastSpecialFired = now;
+            soundManager.playExplosion(false);
 
             // Screen Shake & Explosion
             this.shakeTime = 12;
@@ -800,6 +911,17 @@ export class GameEngine {
         this.triggerStateChange();
       }
     }
+
+    // Periodic floating item spawn (gems, coins, health crystals, stars)
+    this.itemSpawnTimer -= dt * 16.67;
+    if (this.itemSpawnTimer <= 0) {
+      this.itemSpawnTimer = 4000 + Math.random() * 3500;
+      const types: ItemType[] = ["gem", "coin", "health_crystal", "star_powerup"];
+      const type = types[Math.floor(Math.random() * types.length)];
+      const item = new CollectibleItem({ x: 850, y: 50 + Math.random() * 340, type });
+      this.items.push(item);
+      this.gameStage.addChild(item.container);
+    }
   }
 
   // --- ENTITY UPDATER ---
@@ -813,6 +935,17 @@ export class GameEngine {
         targetX = this.playerDragons[i].x;
         targetY = this.playerDragons[i].y;
         break;
+      }
+    }
+
+    // Update collectible items
+    for (let i = this.items.length - 1; i >= 0; i--) {
+      const item = this.items[i];
+      item.update(dt);
+
+      if (item.x < -40) {
+        item.destroy();
+        this.items.splice(i, 1);
       }
     }
 
@@ -1238,8 +1371,9 @@ export class GameEngine {
           this.particles.emitExplosion(proj.x, proj.y, proj.color, 8);
           this.triggerShake(4, 5);
 
-          // Apply damage
-          const isDead = enemy.takeDamage(proj.damage);
+          // Apply damage with damage upgrade bonus
+          const dmgMultiplier = 1 + (this.state.damageUpgradeLevel * 0.35);
+          const isDead = enemy.takeDamage(proj.damage * dmgMultiplier);
           
           // Clean up hit projectile
           proj.destroy();
@@ -1247,17 +1381,31 @@ export class GameEngine {
 
           if (isDead) {
             const isBoss = (enemy.type === "giant_worm" || enemy.type === "mountain_boss" || enemy.type === "forest_boss" || enemy.type === "sea_kraken_boss");
+            
+            // Explosion sound effect
+            soundManager.playExplosion(isBoss);
+
             // Massive death particle shatter
             this.particles.emitExplosion(enemy.x, enemy.y, isBoss ? 0xf59e0b : 0xef4444, isBoss ? 40 : 18);
             if (isBoss) {
               this.triggerShake(25, 20);
             }
-            this.state.score += isBoss ? 1000 : 100;
+            this.state.score += isBoss ? 250 : 50;
             this.state.enemiesDefeated += 1;
 
             if (isBoss) {
               this.bossRef = null;
               this.state.bossHealth = 0;
+            }
+
+            // Drop collectible item on enemy death
+            if (isBoss || Math.random() < 0.5) {
+              const itemType: ItemType = isBoss
+                ? "star_powerup"
+                : (Math.random() < 0.3 ? "health_crystal" : Math.random() < 0.6 ? "coin" : "gem");
+              const item = new CollectibleItem({ x: enemy.x, y: enemy.y, type: itemType });
+              this.items.push(item);
+              this.gameStage.addChild(item.container);
             }
 
             // Remove enemy
@@ -1282,6 +1430,7 @@ export class GameEngine {
         const pBox = proj.getBoundingBox();
 
         if (this.checkAABB(pBox, playerBox)) {
+          soundManager.playHit();
           this.particles.emitExplosion(proj.x, proj.y, 0xb91c1c, 10);
           this.triggerShake(12, 10);
 
@@ -1300,6 +1449,7 @@ export class GameEngine {
         const eBox = enemy.getBoundingBox();
 
         if (this.checkAABB(eBox, playerBox)) {
+          soundManager.playHit();
           this.particles.emitExplosion(enemy.x, enemy.y, 0xb91c1c, 15);
           this.triggerShake(16, 12);
 
@@ -1318,11 +1468,47 @@ export class GameEngine {
       for (const obst of this.obstacles) {
         const oBox = obst.getBoundingBox();
         if (this.checkAABB(oBox, playerBox)) {
+          soundManager.playHit();
           this.particles.emitExplosion(dragon.x + 10, dragon.y, 0x4f7c46, 12);
           this.triggerShake(18, 15);
 
           this.state.playersHealth[plIdx] = Math.max(0, (this.state.playersHealth[plIdx] || 0) - 1.5);
           this.checkGameOver();
+        }
+      }
+
+      // 5. Collectible Items vs Player Dragons
+      for (let i = this.items.length - 1; i >= 0; i--) {
+        const item = this.items[i];
+        const itemBox = item.getBoundingBox();
+
+        if (this.checkAABB(itemBox, playerBox)) {
+          this.particles.emitExplosion(
+            item.x,
+            item.y,
+            item.type === "health_crystal" ? 0xef4444 : item.type === "star_powerup" ? 0xfacc15 : 0x38bdf8,
+            14
+          );
+
+          if (item.type === "health_crystal") {
+            const maxHp = this.state.playersMaxHealth[plIdx] || 300;
+            this.state.playersHealth[plIdx] = Math.min(maxHp, (this.state.playersHealth[plIdx] || 0) + 50);
+            this.state.playerHealth = Math.max(...this.state.playersHealth, 0);
+          } else if (item.type === "star_powerup") {
+            this.state.score += 150;
+            const maxHp = this.state.playersMaxHealth[plIdx] || 300;
+            this.state.playersHealth[plIdx] = Math.min(maxHp, (this.state.playersHealth[plIdx] || 0) + 100);
+            this.state.playerHealth = Math.max(...this.state.playersHealth, 0);
+          } else {
+            this.state.score += item.value;
+          }
+
+          // Play item collection sound effect!
+          soundManager.playCollect(item.type);
+
+          item.destroy();
+          this.items.splice(i, 1);
+          break;
         }
       }
     }
@@ -1355,9 +1541,9 @@ export class GameEngine {
     const level = this.state.currentLevel;
 
     if (level === 1) {
-      // Level 1: Enemies defeated increase progress up to 80%, then Mountain Boss at 80%
+      // Level 1: Enemies defeated increase progress up to 80% (requires 25 enemies defeated), then Mountain Boss at 80%
       if (this.state.levelProgress < 80) {
-        this.state.levelProgress = Math.min(80, this.state.enemiesDefeated * 8);
+        this.state.levelProgress = Math.min(80, this.state.enemiesDefeated * 3.2);
       } else {
         // Boss fight phase!
         if (this.bossSpawned && !this.bossRef && this.enemies.filter(e => e.type === "mountain_boss").length === 0) {
@@ -1367,9 +1553,9 @@ export class GameEngine {
       }
     } 
     else if (level === 2) {
-      // Level 2: Distance based up to 80%, then Giant Worm Boss required
+      // Level 2: Extended desert flight distance up to 80%, then Giant Worm Boss required
       if (this.state.levelProgress < 80) {
-        this.state.levelProgress += dt * 0.05;
+        this.state.levelProgress += dt * 0.018;
         if (this.state.levelProgress >= 80) {
           this.state.levelProgress = 80;
         }
@@ -1382,9 +1568,9 @@ export class GameEngine {
       }
     } 
     else if (level === 3) {
-      // Level 3: Distance based up to 80%, then Ancient Forest Ent Boss required
+      // Level 3: Extended forest flight distance up to 80%, then Ancient Forest Ent Boss required
       if (this.state.levelProgress < 80) {
-        this.state.levelProgress += dt * 0.055;
+        this.state.levelProgress += dt * 0.020;
         if (this.state.levelProgress >= 80) {
           this.state.levelProgress = 80;
         }
@@ -1397,9 +1583,9 @@ export class GameEngine {
       }
     }
     else if (level === 4) {
-      // Level 4: Distance based up to 80%, then Kraken Boss required
+      // Level 4: Extended ocean flight distance up to 80%, then Kraken Boss required
       if (this.state.levelProgress < 80) {
-        this.state.levelProgress += dt * 0.06;
+        this.state.levelProgress += dt * 0.022;
         if (this.state.levelProgress >= 80) {
           this.state.levelProgress = 80;
         }
@@ -1419,11 +1605,11 @@ export class GameEngine {
     this.isRunning = false;
     this.triggerShake(5, 30);
     
-    // Complete entire journey if level 4 (final ocean level), otherwise transition
+    // Complete entire journey if level 4 (final ocean level), otherwise enter Cave Sanctuary
     if (this.state.currentLevel === 4) {
       this.state.status = "victory";
     } else {
-      this.state.status = "level_complete";
+      this.state.status = "cave_shop";
     }
     this.triggerStateChange();
   }
@@ -1438,6 +1624,7 @@ export class GameEngine {
     this.isRunning = false;
     window.removeEventListener("keydown", this.handleKeyDown);
     window.removeEventListener("keyup", this.handleKeyUp);
+    window.removeEventListener("blur", this.handleBlur);
     
     if (this.initPromise) {
       try {

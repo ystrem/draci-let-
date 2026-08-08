@@ -202,11 +202,15 @@ export class PlayerDragon {
   }
 
   // Handle movement
-  public move(dx: number, dy: number, screenWidth: number, screenHeight: number) {
-    this.x += dx * this.speed;
-    this.y += dy * this.speed;
+  public move(dx: number, dy: number, screenWidth: number, screenHeight: number, dt: number = 1) {
+    this.x += dx * this.speed * dt;
+    this.y += dy * this.speed * dt;
 
-    // Boundary constraints (leaving padding for the wings/tail)
+    // Smoothly tilt dragon up/down during vertical flight
+    const targetRot = dy * 0.18;
+    this.container.rotation += (targetRot - this.container.rotation) * Math.min(1, 0.25 * dt);
+
+    // Boundary constraints (leaving padding for wings, tail, and snout)
     const padX = 40;
     const padY = 35;
     if (this.x < padX) this.x = padX;

@@ -14,6 +14,9 @@ export default function App() {
     enemiesDefeated: 0,
     playerHealth: DRAGONS[0].maxHealth,
     playerMaxHealth: DRAGONS[0].maxHealth,
+    playerCount: 1,
+    playersHealth: [DRAGONS[0].maxHealth],
+    playersMaxHealth: [DRAGONS[0].maxHealth],
     levelProgress: 0,
     selectedDragonId: DRAGONS[0].id,
     dragonConfig: DRAGONS[0],
@@ -24,6 +27,10 @@ export default function App() {
     bossMaxHealth: 250,
     isPaused: false,
     mute: false,
+    healthUpgradeLevel: 0,
+    fireRateUpgradeLevel: 0,
+    damageUpgradeLevel: 0,
+    speedUpgradeLevel: 0,
   });
 
   useEffect(() => {
@@ -111,6 +118,18 @@ export default function App() {
     }
   };
 
+  const handleToggleMute = () => {
+    if (engineRef.current) {
+      engineRef.current.toggleMute();
+    }
+  };
+
+  const handleUpgradeHealth = () => engineRef.current?.upgradeHealth();
+  const handleUpgradeFireRate = () => engineRef.current?.upgradeFireRate();
+  const handleUpgradeDamage = () => engineRef.current?.upgradeDamage();
+  const handleUpgradeSpeed = () => engineRef.current?.upgradeSpeed();
+  const handleNextLevelFromCave = () => engineRef.current?.nextLevelFromCave();
+
   return (
     <div id="app-root-container" className="w-screen h-screen overflow-hidden bg-slate-950">
       <EditorHUD
@@ -124,6 +143,12 @@ export default function App() {
         onSkipLevel={handleSkipLevel}
         onSetPlayerCount={handleSetPlayerCount}
         onOpenMenu={handleOpenMenu}
+        onToggleMute={handleToggleMute}
+        onUpgradeHealth={handleUpgradeHealth}
+        onUpgradeFireRate={handleUpgradeFireRate}
+        onUpgradeDamage={handleUpgradeDamage}
+        onUpgradeSpeed={handleUpgradeSpeed}
+        onNextLevelFromCave={handleNextLevelFromCave}
       />
     </div>
   );
