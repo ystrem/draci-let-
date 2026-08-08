@@ -128,8 +128,12 @@ export class GameEngine {
       // Append Pixi's fresh canvas element into the container div
       const canvas = this.app.canvas as HTMLCanvasElement;
       if (canvas && this.containerElement) {
+        this.containerElement.style.position = "relative";
+        this.containerElement.style.width = "100%";
+        this.containerElement.style.height = "100%";
+        
         canvas.id = "game-pixi-canvas";
-        canvas.className = "w-full h-full block bg-[#0f172a] rounded-xl shadow-2xl";
+        canvas.className = "w-full h-full block bg-[#0f172a] rounded-xl shadow-2xl absolute inset-0";
         canvas.style.display = "block";
         canvas.style.width = "100%";
         canvas.style.height = "100%";
@@ -166,6 +170,16 @@ export class GameEngine {
       this.isInitialized = true;
       this.isRunning = true;
       this.startLevel(1);
+      
+      // Force initial immediate render
+      if (this.app.renderer && this.app.stage) {
+        try {
+          this.app.renderer.render(this.app.stage);
+        } catch (e) {
+          // ignore
+        }
+      }
+
       this.triggerStateChange();
     })();
 
@@ -381,6 +395,14 @@ export class GameEngine {
     if (this.isDestroyed || !this.app || !this.app.renderer || !this.app.stage) return;
     if (this.state.isPaused) return;
 
+    // Ensure canvas stays appended in container
+    const canvas = this.app.canvas as HTMLCanvasElement;
+    if (canvas && this.containerElement && !this.containerElement.contains(canvas)) {
+      this.containerElement.appendChild(canvas);
+    }
+
+    const dt = (ticker && typeof ticker === 'object' && 'deltaTime' in ticker && typeof ticker.deltaTime === 'number') ? ticker.deltaTime : (typeof ticker === 'number' ? ticker : 1);
+
     try {
       // Menu preview loop: update background and let player dragon float & flap wings
       if (this.state.status === "menu") {
@@ -397,6 +419,13 @@ export class GameEngine {
           });
           if (this.particles) this.particles.emitStormEmbers(800, 450);
         }
+        
+        // Render menu frame
+        try {
+          this.app.renderer.render(this.app.stage);
+        } catch (e) {
+          // ignore
+        }
         return;
       }
     } catch (e) {
@@ -407,7 +436,6 @@ export class GameEngine {
     try {
       if (!this.isRunning) return;
 
-      const dt = ticker.deltaTime || 1;
       const now = Date.now();
 
       // 1. Process Screen Shake
@@ -618,6 +646,13 @@ export class GameEngine {
 
       // 8. Track level progression / victory transitions
       this.trackProgression(dt);
+
+      // Force frame render
+      try {
+        this.app.renderer.render(this.app.stage);
+      } catch (e) {
+        // ignore
+      }
     } catch (e) {
       console.warn("Transient ticker update error ignored:", e);
     }

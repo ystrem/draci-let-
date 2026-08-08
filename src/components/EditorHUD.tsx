@@ -875,11 +875,11 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
           )}
 
           {/* Active Canvas Holder with Real-time Game Status overlays */}
-          <div className="relative flex-1 bg-slate-950 flex items-center justify-center overflow-hidden p-2 min-h-0">
+          <div className="relative flex-1 bg-slate-950 flex items-center justify-center overflow-hidden p-2 min-h-[300px]">
             <div
               ref={containerRef}
               id="game-canvas-holder"
-              className="w-full max-w-5xl aspect-[16/9] shadow-2xl bg-[#0f172a] flex items-center justify-center overflow-hidden rounded-xl border border-slate-800/80 my-auto"
+              className="relative w-full max-w-5xl aspect-[16/9] shadow-2xl bg-[#0f172a] overflow-hidden rounded-xl border border-slate-800/80 my-auto flex items-center justify-center min-h-[280px]"
             />
 
             {/* In-Game HUD overlay */}

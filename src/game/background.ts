@@ -398,8 +398,8 @@ export class ParallaxBackground {
   }
 
   // Update scrolling
-  public update(ticker: { deltaTime: number }, gameSpeedModifier: number = 1.0) {
-    const dt = ticker.deltaTime || 1;
+  public update(ticker: any, gameSpeedModifier: number = 1.0) {
+    const dt = (ticker && typeof ticker === 'object' && 'deltaTime' in ticker && typeof ticker.deltaTime === 'number') ? ticker.deltaTime : (typeof ticker === 'number' ? ticker : 1);
 
     // Scroll calculations
     this.farX -= this.farSpeed * gameSpeedModifier * dt;

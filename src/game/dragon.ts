@@ -38,7 +38,6 @@ export class PlayerDragon {
     // Create and apply ColorMatrixFilter for hue shifts safely
     try {
       this.colorFilter = new ColorMatrixFilter();
-      this.container.filters = [this.colorFilter];
     } catch (e) {
       console.warn("ColorMatrixFilter initialization skipped:", e);
     }
@@ -183,9 +182,18 @@ export class PlayerDragon {
 
   // Shift the color filter hue
   public setHue(angle: number) {
-    // Standard PixiJS hue-shifting filter
-    this.colorFilter.reset();
-    this.colorFilter.hue(angle, false);
+    if (!this.colorFilter) return;
+    if (angle === 0) {
+      this.container.filters = null;
+    } else {
+      try {
+        this.colorFilter.reset();
+        this.colorFilter.hue(angle, false);
+        this.container.filters = [this.colorFilter];
+      } catch (e) {
+        this.container.filters = null;
+      }
+    }
   }
 
   public updatePosition() {
@@ -210,8 +218,8 @@ export class PlayerDragon {
   }
 
   // Flap wings and animate parts in the update loop
-  public update(ticker: { deltaTime: number }) {
-    const dt = ticker.deltaTime || 1;
+  public update(ticker: any) {
+    const dt = (ticker && typeof ticker === 'object' && 'deltaTime' in ticker && typeof ticker.deltaTime === 'number') ? ticker.deltaTime : (typeof ticker === 'number' ? ticker : 1);
     this.animTime += 0.12 * dt;
 
     // 1. Wings flapping

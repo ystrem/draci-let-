@@ -573,8 +573,8 @@ export class Enemy {
   }
 
   // Update position and behavior
-  public update(ticker: { deltaTime: number }, playerX: number, playerY: number, screenWidth: number, screenHeight: number) {
-    const dt = ticker.deltaTime || 1;
+  public update(ticker: any, playerX: number, playerY: number, screenWidth: number, screenHeight: number) {
+    const dt = (ticker && typeof ticker === 'object' && 'deltaTime' in ticker && typeof ticker.deltaTime === 'number') ? ticker.deltaTime : (typeof ticker === 'number' ? ticker : 1);
     this.animTime += 0.1 * dt;
 
     // Handle projectile cooldown
@@ -952,8 +952,8 @@ export class Projectile {
     }
   }
 
-  public update(ticker: { deltaTime: number }) {
-    const dt = ticker.deltaTime || 1;
+  public update(ticker: any) {
+    const dt = (ticker && typeof ticker === 'object' && 'deltaTime' in ticker && typeof ticker.deltaTime === 'number') ? ticker.deltaTime : (typeof ticker === 'number' ? ticker : 1);
     
     // Apply velocity
     this.x += this.vx * dt;

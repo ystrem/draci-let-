@@ -210,8 +210,8 @@ export class ParticleSystem {
   }
 
   // Update particles
-  public update(ticker: { deltaTime: number }) {
-    const dt = ticker.deltaTime || 1;
+  public update(ticker: any) {
+    const dt = (ticker && typeof ticker === 'object' && 'deltaTime' in ticker && typeof ticker.deltaTime === 'number') ? ticker.deltaTime : (typeof ticker === 'number' ? ticker : 1);
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
       p.life -= p.decay * dt;
