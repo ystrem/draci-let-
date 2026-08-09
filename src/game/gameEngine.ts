@@ -366,7 +366,7 @@ export class GameEngine {
   }
 
   public nextLevelFromCave() {
-    if (this.state.currentLevel < 4) {
+    if (this.state.currentLevel < 6) {
       this.startLevel(this.state.currentLevel + 1);
     } else {
       this.state.status = "victory";
@@ -572,6 +572,10 @@ export class GameEngine {
       } else if (this.state.currentLevel === 3) {
         this.particles.emitLeaves(800, 450);
       } else if (this.state.currentLevel === 4) {
+        this.particles.emitBubbles(800, 450);
+      } else if (this.state.currentLevel === 5) {
+        this.particles.emitStormEmbers(800, 450);
+      } else if (this.state.currentLevel === 6) {
         this.particles.emitBubbles(800, 450);
       }
 
@@ -1565,12 +1569,12 @@ export class GameEngine {
       }
 
       // Sync Boss Health to HUD
-      if (enemy.type === "giant_worm" || enemy.type === "mountain_boss" || enemy.type === "forest_boss" || enemy.type === "sea_kraken_boss") {
+      if (enemy.isBoss()) {
         this.state.bossHealth = Math.max(0, enemy.health);
       }
 
       // Remove off-screen minor enemies
-      if (enemy.x < -150 && enemy.type !== "giant_worm" && enemy.type !== "mountain_boss" && enemy.type !== "forest_boss" && enemy.type !== "sea_kraken_boss") {
+      if (enemy.x < -150 && !enemy.isBoss()) {
         enemy.destroy();
         this.enemies.splice(i, 1);
       }
@@ -1605,7 +1609,7 @@ export class GameEngine {
           this.playerProjectiles.splice(pIdx, 1);
 
           if (isDead) {
-            const isBoss = (enemy.type === "giant_worm" || enemy.type === "mountain_boss" || enemy.type === "forest_boss" || enemy.type === "sea_kraken_boss");
+            const isBoss = enemy.isBoss();
             
             // Explosion sound effect
             soundManager.playExplosion(isBoss);
@@ -1680,7 +1684,7 @@ export class GameEngine {
 
           this.state.playersHealth[plIdx] = Math.max(0, (this.state.playersHealth[plIdx] || 0) - enemy.damage);
           
-          if (enemy.type !== "giant_worm" && enemy.type !== "mountain_boss" && enemy.type !== "forest_boss" && enemy.type !== "sea_kraken_boss") {
+          if (!enemy.isBoss()) {
             enemy.destroy();
             this.enemies.splice(i, 1);
           }

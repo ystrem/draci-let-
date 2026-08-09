@@ -977,6 +977,22 @@ export class Enemy {
         height: 110
       };
     }
+    if (this.type === "lava_ninja_boss") {
+      return {
+        x: this.x - 55,
+        y: this.y - 60,
+        width: 110,
+        height: 120
+      };
+    }
+    if (this.type === "dark_ninja_boss") {
+      return {
+        x: this.x - 60,
+        y: this.y - 65,
+        width: 120,
+        height: 130
+      };
+    }
     // Normal enemy box
     return {
       x: this.x - this.width / 2,
@@ -984,6 +1000,17 @@ export class Enemy {
       width: this.width,
       height: this.height
     };
+  }
+
+  public isBoss(): boolean {
+    return (
+      this.type === "mountain_boss" ||
+      this.type === "giant_worm" ||
+      this.type === "forest_boss" ||
+      this.type === "sea_kraken_boss" ||
+      this.type === "lava_ninja_boss" ||
+      this.type === "dark_ninja_boss"
+    );
   }
 
   public takeDamage(amount: number): boolean {
