@@ -1,6 +1,6 @@
 import { Container, Graphics } from "pixi.js";
 
-export type EnemyType = "naga" | "dragon_monster" | "giant_worm" | "worm_tail" | "dwarf" | "mountain_boss" | "forest_boss" | "sea_jelly" | "sea_piranha" | "sea_serpent" | "sea_kraken_boss";
+export type EnemyType = "naga" | "dragon_monster" | "giant_worm" | "worm_tail" | "dwarf" | "mountain_boss" | "forest_boss" | "sea_jelly" | "sea_piranha" | "sea_serpent" | "sea_kraken_boss" | "lava_dragon_enemy" | "lava_ninja_boss" | "dark_monster" | "dark_ninja_boss";
 
 export class Enemy {
   public container: Container;
@@ -168,6 +168,54 @@ export class Enemy {
         this.damage = 35;
         this.fireRate = 1000;
         this.buildSeaKrakenBoss();
+        break;
+
+      case "lava_dragon_enemy":
+        this.width = 55;
+        this.height = 42;
+        this.health = 35;
+        this.maxHealth = 35;
+        this.speedX = -(2.2 + Math.random() * 1.5);
+        this.speedY = 0;
+        this.damage = 18;
+        this.fireRate = 1400;
+        this.buildLavaDragonEnemy();
+        break;
+
+      case "lava_ninja_boss":
+        this.width = 110;
+        this.height = 120;
+        this.health = 1300; // Large Lava Ninja Boss
+        this.maxHealth = 1300;
+        this.speedX = 0;
+        this.speedY = 0;
+        this.damage = 38;
+        this.fireRate = 850;
+        this.buildLavaNinjaBoss();
+        break;
+
+      case "dark_monster":
+        this.width = 48;
+        this.height = 48;
+        this.health = 45;
+        this.maxHealth = 45;
+        this.speedX = -(2.5 + Math.random() * 1.8);
+        this.speedY = 0;
+        this.damage = 22;
+        this.fireRate = 1300;
+        this.buildDarkMonster();
+        break;
+
+      case "dark_ninja_boss":
+        this.width = 120;
+        this.height = 130;
+        this.health = 1600; // Final Ultimate Boss: Dark Ninja Stickman
+        this.maxHealth = 1600;
+        this.speedX = 0;
+        this.speedY = 0;
+        this.damage = 42;
+        this.fireRate = 700;
+        this.buildDarkNinjaBoss();
         break;
     }
 
@@ -572,6 +620,122 @@ export class Enemy {
     this.container.addChild(mainG);
   }
 
+  // Draw Lava Dragon Enemy
+  private buildLavaDragonEnemy() {
+    const mainG = this.mainGraphics;
+    mainG.clear();
+    // Fiery red/orange body
+    mainG.ellipse(0, 0, 22, 14).fill({ color: 0xd97706 });
+    mainG.ellipse(0, 0, 18, 10).fill({ color: 0xef4444 });
+    // Horned dragon head
+    mainG.circle(-16, -6, 11).fill({ color: 0x991b1b });
+    mainG.circle(-20, -5, 5).fill({ color: 0xd97706 });
+    // Glowing yellow eye
+    mainG.circle(-18, -8, 3.5).fill({ color: 0xfde047 });
+    mainG.circle(-18, -8, 1.5).fill({ color: 0x000000 });
+    // Lava horns
+    mainG.moveTo(-14, -13).lineTo(-10, -22).lineTo(-18, -15).closePath().fill({ color: 0xf97316 });
+    // Fiery wing
+    mainG.moveTo(2, -4).lineTo(15, -28).lineTo(28, -12).lineTo(10, -2).closePath().fill({ color: 0xf97316 });
+
+    this.container.addChild(mainG);
+  }
+
+  // Draw Lava Ninja Stickman Boss
+  private buildLavaNinjaBoss() {
+    const mainG = this.mainGraphics;
+    mainG.clear();
+
+    // Fiery aura glow around stick ninja
+    mainG.circle(0, -10, 50).fill({ color: 0xef4444, alpha: 0.25 });
+    mainG.circle(0, -10, 35).fill({ color: 0xf97316, alpha: 0.35 });
+
+    // Ninja stickman head (masked with glowing yellow ninja eyes)
+    mainG.circle(0, -45, 18).fill({ color: 0x7f1d1d }); // Ninja cowl/mask
+    mainG.rect(-12, -49, 24, 7).fill({ color: 0x18181b }); // Eye headband
+    // Glowing fiery eyes
+    mainG.ellipse(-5, -46, 3, 2).fill({ color: 0xfde047 });
+    mainG.ellipse(5, -46, 3, 2).fill({ color: 0xfde047 });
+
+    // Ninja headband tail flowing back
+    mainG.moveTo(-12, -45).bezierCurveTo(-25, -52, -35, -40, -42, -58).stroke({ color: 0xef4444, width: 5 });
+
+    // Stickman Body torso
+    mainG.rect(-4, -27, 8, 38).fill({ color: 0x7f1d1d }); // Lava Ninja tunic
+
+    // Stick Arms & Dual Flaming Katanas
+    mainG.moveTo(-4, -20).lineTo(-22, -10).lineTo(-15, 15).stroke({ color: 0xef4444, width: 5 });
+    mainG.moveTo(-15, 15).lineTo(-35, 30).stroke({ color: 0xf97316, width: 4 }).stroke({ color: 0xfde047, width: 2 }); // Flaming Katana 1
+
+    mainG.moveTo(4, -20).lineTo(25, -12).lineTo(40, -25).stroke({ color: 0xef4444, width: 5 });
+    mainG.moveTo(40, -25).lineTo(70, -38).stroke({ color: 0xf97316, width: 5 }).stroke({ color: 0xffffff, width: 2 }); // Flaming Katana 2
+
+    // Stick Legs in martial stance
+    mainG.moveTo(-2, 11).lineTo(-20, 35).lineTo(-25, 52).stroke({ color: 0x7f1d1d, width: 6 });
+    mainG.moveTo(2, 11).lineTo(18, 35).lineTo(22, 52).stroke({ color: 0x7f1d1d, width: 6 });
+
+    this.container.addChild(mainG);
+  }
+
+  // Draw Dark Monster
+  private buildDarkMonster() {
+    const mainG = this.mainGraphics;
+    mainG.clear();
+
+    // Dark void shadow aura
+    mainG.circle(0, 0, 22).fill({ color: 0x3b0764 });
+    mainG.circle(0, 0, 16).fill({ color: 0x581c87 });
+
+    // Glowing purple void eyes
+    mainG.circle(-6, -4, 4).fill({ color: 0xc084fc });
+    mainG.circle(6, -4, 4).fill({ color: 0xc084fc });
+    mainG.circle(-6, -4, 1.5).fill({ color: 0xffffff });
+    mainG.circle(6, -4, 1.5).fill({ color: 0xffffff });
+
+    // Sharp shadow claws/horns
+    mainG.moveTo(-12, -12).lineTo(-18, -25).lineTo(-8, -16).closePath().fill({ color: 0xa855f7 });
+    mainG.moveTo(12, -12).lineTo(18, -25).lineTo(8, -16).closePath().fill({ color: 0xa855f7 });
+    mainG.moveTo(-18, 5).lineTo(-28, 12).lineTo(-16, 12).closePath().fill({ color: 0x3b0764 });
+
+    this.container.addChild(mainG);
+  }
+
+  // Draw Dark Ninja Stickman Final Boss
+  private buildDarkNinjaBoss() {
+    const mainG = this.mainGraphics;
+    mainG.clear();
+
+    // Dark void purple aura rings
+    mainG.circle(0, -10, 55).fill({ color: 0x581c87, alpha: 0.3 });
+    mainG.circle(0, -10, 40).fill({ color: 0x7e22ce, alpha: 0.4 });
+
+    // Ninja stickman head (dark purple cowl with bright glowing magenta eyes)
+    mainG.circle(0, -50, 20).fill({ color: 0x2e1065 });
+    mainG.rect(-14, -54, 28, 8).fill({ color: 0x090514 });
+    // Glowing cosmic eyes
+    mainG.ellipse(-6, -51, 3.5, 2).fill({ color: 0xe879f9 });
+    mainG.ellipse(6, -51, 3.5, 2).fill({ color: 0xe879f9 });
+
+    // Dark flowing scarf/headband tail
+    mainG.moveTo(-14, -50).bezierCurveTo(-28, -58, -42, -45, -55, -65).stroke({ color: 0xa855f7, width: 6 });
+
+    // Dark Ninja Torso
+    mainG.rect(-5, -30, 10, 42).fill({ color: 0x2e1065 });
+
+    // Arms with dual Dark Void Blades
+    mainG.moveTo(-5, -22).lineTo(-25, -12).lineTo(-35, -30).stroke({ color: 0x581c87, width: 5 });
+    mainG.moveTo(-35, -30).lineTo(-60, -50).stroke({ color: 0xc084fc, width: 5 }).stroke({ color: 0xffffff, width: 2 });
+
+    mainG.moveTo(5, -22).lineTo(30, -15).lineTo(45, -28).stroke({ color: 0x581c87, width: 5 });
+    mainG.moveTo(45, -28).lineTo(78, -42).stroke({ color: 0xe879f9, width: 6 }).stroke({ color: 0xffffff, width: 2 });
+
+    // Stick Legs
+    mainG.moveTo(-2, 12).lineTo(-22, 38).lineTo(-28, 58).stroke({ color: 0x2e1065, width: 6 });
+    mainG.moveTo(2, 12).lineTo(20, 38).lineTo(25, 58).stroke({ color: 0x2e1065, width: 6 });
+
+    this.container.addChild(mainG);
+  }
+
   // Update position and behavior
   public update(ticker: any, playerX: number, playerY: number, screenWidth: number, screenHeight: number) {
     const dt = (ticker && typeof ticker === 'object' && 'deltaTime' in ticker && typeof ticker.deltaTime === 'number') ? ticker.deltaTime : (typeof ticker === 'number' ? ticker : 1);
@@ -728,6 +892,41 @@ export class Enemy {
         }
         this.y = 220 + Math.sin(this.animTime * 0.8) * 70;
         this.container.rotation = Math.sin(this.animTime * 0.4) * 0.08;
+        break;
+      }
+
+      case "lava_dragon_enemy": {
+        this.y += Math.sin(this.animTime * 1.8) * 1.2 * dt;
+        break;
+      }
+
+      case "lava_ninja_boss": {
+        if (this.x > 630) {
+          this.speedX = -2.0;
+        } else {
+          this.speedX = 0;
+        }
+        // Ninja leaps up and down gracefully
+        this.y = 210 + Math.sin(this.animTime * 1.2) * 85;
+        this.container.rotation = Math.sin(this.animTime * 1.2) * 0.12;
+        break;
+      }
+
+      case "dark_monster": {
+        const dy = playerY - this.y;
+        this.y += Math.sign(dy) * 1.4 * dt + Math.cos(this.animTime * 2.0) * 1.2;
+        break;
+      }
+
+      case "dark_ninja_boss": {
+        if (this.x > 620) {
+          this.speedX = -2.2;
+        } else {
+          this.speedX = 0;
+        }
+        // Dark Ninja teleports/dashes vertically with shadow steps
+        this.y = 220 + Math.sin(this.animTime * 1.6) * 95;
+        this.container.rotation = Math.sin(this.animTime * 0.8) * 0.15;
         break;
       }
     }

@@ -37,6 +37,7 @@ export interface GameState {
   fireRateUpgradeLevel: number;
   damageUpgradeLevel: number;
   speedUpgradeLevel: number;
+  babyDragonUnlocked: boolean;
 }
 
 export const DRAGONS: DragonConfig[] = [
@@ -149,5 +150,21 @@ export const LEVELS: LevelConfig[] = [
     goalDescription: "Ponořte se do oceanického žlebu, vylepšete draka v krystalové jeskyni a poražte Pravěkého Krakena!",
     targetProgress: 160,
     parallaxSpeedFactor: 1.8,
+  },
+  {
+    id: 5,
+    title: "Lávová Říše",
+    subtitle: "Biom: Řeka žhavé lávy a soptící krátery",
+    goalDescription: "Proleťte ohnivou lávovou říší, poražte zlé lávové draky a skoncujte s velkým Lávovým Ninjou Stickmanem!",
+    targetProgress: 160,
+    parallaxSpeedFactor: 2.0,
+  },
+  {
+    id: 6,
+    title: "Temná Říše",
+    subtitle: "Biom: Temná stínová propast a fialový kosmický chaos",
+    goalDescription: "Probijte se temnými příšerami v propasti a poražte finálního zlotřilého Temného Ninju Stickmena!",
+    targetProgress: 160,
+    parallaxSpeedFactor: 2.2,
   }
 ];

@@ -107,6 +107,28 @@ export class ParallaxBackground {
         this.midSpeed = 0.8;
         this.nearSpeed = 1.6;
         break;
+
+      case 5: // Lava Realm
+        this.drawLavaSky();
+        this.drawLavaMountains(this.farLayer, 200, 0x450a0a, 0x180202, 1);
+        this.drawLavaMountains(this.midLayer, 280, 0x7f1d1d, 0x450a0a, 2);
+        this.drawLavaMountains(this.nearLayer, 370, 0x991b1b, 0x7f1d1d, 3);
+        
+        this.farSpeed = 0.35;
+        this.midSpeed = 0.9;
+        this.nearSpeed = 1.8;
+        break;
+
+      case 6: // Dark Realm
+        this.drawDarkSky();
+        this.drawDarkSpires(this.farLayer, 190, 0x1e1b4b, 0x090514, 1);
+        this.drawDarkSpires(this.midLayer, 270, 0x31104b, 0x1e1b4b, 2);
+        this.drawDarkSpires(this.nearLayer, 360, 0x581c87, 0x31104b, 3);
+        
+        this.farSpeed = 0.4;
+        this.midSpeed = 1.0;
+        this.nearSpeed = 2.0;
+        break;
     }
   }
 
@@ -393,6 +415,95 @@ export class ParallaxBackground {
       }
     };
 
+    drawSide(0);
+    drawSide(this.width);
+  }
+
+  // --- LEVEL 5 LAVA REALM GRAPHICS ---
+  private drawLavaSky() {
+    this.skyLayer.rect(0, 0, this.width, this.height).fill({ color: 0x2a0404 });
+    // Fiery volcanic glow at horizon
+    this.skyLayer.rect(0, 200, this.width, this.height - 200).fill({ color: 0x7f1d1d, alpha: 0.9 });
+    this.skyLayer.ellipse(400, 320, 500, 140).fill({ color: 0xf97316, alpha: 0.35 });
+    this.skyLayer.ellipse(400, 380, 450, 80).fill({ color: 0xef4444, alpha: 0.45 });
+
+    // Fiery red sun/volcano core
+    this.skyLayer.circle(200, 100, 50).fill({ color: 0xfbfbfe, alpha: 0.95 });
+    this.skyLayer.circle(200, 100, 75).fill({ color: 0xf97316, alpha: 0.5 });
+    this.skyLayer.circle(200, 100, 110).fill({ color: 0xd97706, alpha: 0.25 });
+  }
+
+  private drawLavaMountains(g: Graphics, baseHeight: number, topColor: number, bottomColor: number, layer: number) {
+    g.clear();
+    const drawSide = (offsetX: number) => {
+      const step = 20;
+      g.moveTo(offsetX, this.height);
+      for (let x = 0; x <= this.width; x += step) {
+        const y = this.height - baseHeight + Math.sin(x * 0.01) * 60 + Math.cos(x * 0.025) * 30;
+        g.lineTo(offsetX + x, y);
+      }
+      g.lineTo(offsetX + this.width, this.height);
+      g.closePath();
+      g.fill({ color: bottomColor });
+
+      // Lava rivers / cracks on mountains
+      for (let x = 30; x < this.width; x += 100) {
+        const py = this.height - baseHeight + Math.sin(x * 0.01) * 60 + Math.cos(x * 0.025) * 30;
+        g.moveTo(offsetX + x, py)
+          .lineTo(offsetX + x + 15, py + 40)
+          .lineTo(offsetX + x - 10, py + 90)
+          .lineTo(offsetX + x + 20, this.height)
+          .stroke({ color: 0xef4444, width: layer === 3 ? 4 : 2 });
+      }
+    };
+    drawSide(0);
+    drawSide(this.width);
+  }
+
+  // --- LEVEL 6 DARK REALM GRAPHICS ---
+  private drawDarkSky() {
+    this.skyLayer.rect(0, 0, this.width, this.height).fill({ color: 0x090314 });
+    // Cosmic dark purple void glow
+    this.skyLayer.ellipse(400, 250, 500, 200).fill({ color: 0x3b0764, alpha: 0.5 });
+    this.skyLayer.ellipse(650, 150, 300, 120).fill({ color: 0x581c87, alpha: 0.35 });
+
+    // Distant dark void portal core
+    this.skyLayer.circle(600, 120, 55).fill({ color: 0xa855f7, alpha: 0.8 });
+    this.skyLayer.circle(600, 120, 80).fill({ color: 0x7e22ce, alpha: 0.4 });
+    this.skyLayer.circle(600, 120, 120).fill({ color: 0x3b0764, alpha: 0.25 });
+  }
+
+  private drawDarkSpires(g: Graphics, baseHeight: number, spireColor: number, baseColor: number, layer: number) {
+    g.clear();
+    const drawSide = (offsetX: number) => {
+      const spires = 12;
+      const step = this.width / spires;
+      g.moveTo(offsetX, this.height);
+      for (let i = 0; i <= spires; i++) {
+        const sx = i * step;
+        const sh = baseHeight + Math.sin(i * 1.7) * 70 + Math.cos(i * 3.1) * 35;
+        g.lineTo(offsetX + sx - step * 0.3, this.height);
+        g.lineTo(offsetX + sx, this.height - sh);
+        g.lineTo(offsetX + sx + step * 0.3, this.height);
+      }
+      g.lineTo(offsetX + this.width, this.height);
+      g.closePath();
+      g.fill({ color: spireColor });
+
+      // Purple void crystals on near spires
+      if (layer >= 2) {
+        for (let i = 1; i < spires; i += 2) {
+          const sx = i * step;
+          const sh = baseHeight + Math.sin(i * 1.7) * 70 + Math.cos(i * 3.1) * 35;
+          g.moveTo(offsetX + sx, this.height - sh)
+            .lineTo(offsetX + sx - 8, this.height - sh - 25)
+            .lineTo(offsetX + sx, this.height - sh - 40)
+            .lineTo(offsetX + sx + 8, this.height - sh - 25)
+            .closePath()
+            .fill({ color: 0xc084fc });
+        }
+      }
+    };
     drawSide(0);
     drawSide(this.width);
   }

@@ -49,6 +49,7 @@ interface EditorHUDProps {
   onUpgradeDamage?: () => void;
   onUpgradeSpeed?: () => void;
   onNextLevelFromCave?: () => void;
+  onUnlockBabyDragon?: () => void;
 }
 
 const CHARACTERS_GALLERY = [
@@ -490,6 +491,7 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
   onUpgradeDamage,
   onUpgradeSpeed,
   onNextLevelFromCave,
+  onUnlockBabyDragon,
 }) => {
   const [showCharactersModal, setShowCharactersModal] = useState(false);
   const [hideMenuOverlay, setHideMenuOverlay] = useState(false);
@@ -1004,7 +1006,10 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
 
                     {hatchingStage === 1 && (
                       <div
-                        onClick={() => setHatchingStage(2)}
+                        onClick={() => {
+                          setHatchingStage(2);
+                          onUnlockBabyDragon?.();
+                        }}
                         className="relative z-20 mb-6 cursor-pointer flex flex-col items-center transition transform hover:scale-105 active:scale-95"
                         title="Klepni ještě jednou pro vyklouznutí!"
                       >

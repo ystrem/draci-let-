@@ -31,6 +31,7 @@ export default function App() {
     fireRateUpgradeLevel: 0,
     damageUpgradeLevel: 0,
     speedUpgradeLevel: 0,
+    babyDragonUnlocked: false,
   });
 
   useEffect(() => {
@@ -129,6 +130,7 @@ export default function App() {
   const handleUpgradeDamage = () => engineRef.current?.upgradeDamage();
   const handleUpgradeSpeed = () => engineRef.current?.upgradeSpeed();
   const handleNextLevelFromCave = () => engineRef.current?.nextLevelFromCave();
+  const handleUnlockBabyDragon = () => engineRef.current?.unlockBabyDragon();
 
   return (
     <div id="app-root-container" className="w-screen h-screen overflow-hidden bg-slate-950">
@@ -149,6 +151,7 @@ export default function App() {
         onUpgradeDamage={handleUpgradeDamage}
         onUpgradeSpeed={handleUpgradeSpeed}
         onNextLevelFromCave={handleNextLevelFromCave}
+        onUnlockBabyDragon={handleUnlockBabyDragon}
       />
     </div>
   );

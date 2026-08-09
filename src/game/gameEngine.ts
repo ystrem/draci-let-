@@ -1,5 +1,5 @@
 import { Application, Container } from "pixi.js";
-import { PlayerDragon } from "./dragon";
+import { PlayerDragon, BabyDragonFollower } from "./dragon";
 import { Enemy, Projectile, EnemyType } from "./enemies";
 import { Obstacle } from "./obstacles";
 import { ParticleSystem } from "./particles";
@@ -17,6 +17,7 @@ export class GameEngine {
   private gameStage!: Container;
   private bgManager!: ParallaxBackground;
   private playerDragons: PlayerDragon[] = [];
+  private babyDragonFollower: BabyDragonFollower | null = null;
   private particles!: ParticleSystem;
 
   // Lists of active entities
@@ -90,6 +91,7 @@ export class GameEngine {
       fireRateUpgradeLevel: 0,
       damageUpgradeLevel: 0,
       speedUpgradeLevel: 0,
+      babyDragonUnlocked: false,
     };
   }
 
@@ -311,6 +313,12 @@ export class GameEngine {
     return false;
   }
 
+  public unlockBabyDragon() {
+    this.state.babyDragonUnlocked = true;
+    soundManager.playPowerup();
+    this.triggerStateChange();
+  }
+
   public upgradeFireRate(): boolean {
     const cost = 500 + (this.state.fireRateUpgradeLevel * 300);
     if (this.state.score >= cost) {
@@ -459,7 +467,7 @@ export class GameEngine {
   }
 
   public skipLevel() {
-    if (this.state.currentLevel < 3) {
+    if (this.state.currentLevel < 6) {
       this.startLevel(this.state.currentLevel + 1);
     } else {
       this.state.status = "victory";
@@ -911,6 +919,58 @@ export class GameEngine {
         this.triggerStateChange();
       }
     }
+    else if (level === 5) {
+      // Level 5 (Lávová Říše): Evil Lava Dragons guarding Lava Ninja Stickman Boss
+      if (this.state.levelProgress < 80) {
+        this.enemySpawnTimer -= dt * 16.67;
+        if (this.enemySpawnTimer <= 0) {
+          this.enemySpawnTimer = 1300 + Math.random() * 800;
+          const type: EnemyType = Math.random() > 0.4 ? "lava_dragon_enemy" : "dragon_monster";
+          const spawnY = 60 + Math.random() * 320;
+
+          const enemy = new Enemy(type, 850, spawnY);
+          this.enemies.push(enemy);
+          this.gameStage.addChild(enemy.container);
+        }
+      } else if (!this.bossSpawned) {
+        // Spawn Lava Ninja Stickman Boss!
+        this.bossSpawned = true;
+        const lavaBoss = new Enemy("lava_ninja_boss", 850, 210);
+        this.enemies.push(lavaBoss);
+        this.bossRef = lavaBoss;
+        this.gameStage.addChild(lavaBoss.container);
+
+        this.state.bossHealth = lavaBoss.health;
+        this.state.bossMaxHealth = lavaBoss.maxHealth;
+        this.triggerStateChange();
+      }
+    }
+    else if (level === 6) {
+      // Level 6 (Temná Říše): Dark Monsters protecting Dark Ninja Stickman Final Boss
+      if (this.state.levelProgress < 80) {
+        this.enemySpawnTimer -= dt * 16.67;
+        if (this.enemySpawnTimer <= 0) {
+          this.enemySpawnTimer = 1200 + Math.random() * 700;
+          const type: EnemyType = "dark_monster";
+          const spawnY = 50 + Math.random() * 340;
+
+          const enemy = new Enemy(type, 850, spawnY);
+          this.enemies.push(enemy);
+          this.gameStage.addChild(enemy.container);
+        }
+      } else if (!this.bossSpawned) {
+        // Spawn Dark Ninja Stickman Final Boss!
+        this.bossSpawned = true;
+        const darkBoss = new Enemy("dark_ninja_boss", 850, 220);
+        this.enemies.push(darkBoss);
+        this.bossRef = darkBoss;
+        this.gameStage.addChild(darkBoss.container);
+
+        this.state.bossHealth = darkBoss.health;
+        this.state.bossMaxHealth = darkBoss.maxHealth;
+        this.triggerStateChange();
+      }
+    }
 
     // Periodic floating item spawn (gems, coins, health crystals, stars)
     this.itemSpawnTimer -= dt * 16.67;
@@ -936,6 +996,35 @@ export class GameEngine {
         targetY = this.playerDragons[i].y;
         break;
       }
+    }
+
+    // Baby Dragon follower immediately following player 1!
+    if (this.state.babyDragonUnlocked) {
+      if (!this.babyDragonFollower) {
+        this.babyDragonFollower = new BabyDragonFollower();
+        this.gameStage.addChild(this.babyDragonFollower.container);
+      }
+      this.babyDragonFollower.update(ticker, targetX, targetY, dt);
+
+      // Baby Dragon shoots golden plasma bolts at enemies!
+      if (this.babyDragonFollower.tryShoot(Date.now())) {
+        const babyProj = new Projectile({
+          x: this.babyDragonFollower.x + 15,
+          y: this.babyDragonFollower.y - 4,
+          vx: 8.5,
+          vy: 0,
+          color: 0xfbbf24,
+          damage: 12,
+          owner: "player",
+          type: "plasma"
+        });
+        this.playerProjectiles.push(babyProj);
+        this.gameStage.addChild(babyProj.container);
+        soundManager.playShoot();
+      }
+    } else if (this.babyDragonFollower) {
+      this.babyDragonFollower.destroy();
+      this.babyDragonFollower = null;
     }
 
     // Update collectible items
@@ -1337,6 +1426,142 @@ export class GameEngine {
             }
           }
         }
+        else if (enemy.type === "lava_dragon_enemy") {
+          // Fire breath blast
+          const proj = new Projectile({
+            x: enemy.x - 20,
+            y: enemy.y,
+            vx: -5.8,
+            vy: (Math.random() - 0.5) * 1.5,
+            color: 0xef4444,
+            damage: 14,
+            owner: "enemy",
+            type: "fire"
+          });
+          this.enemyProjectiles.push(proj);
+          this.gameStage.addChild(proj.container);
+        }
+        else if (enemy.type === "lava_ninja_boss") {
+          // Lava Ninja Boss: Dual Flaming Shurikens, Lava Fire Spreads, Fiery Meteor Bombs
+          const lRand = Math.random();
+          if (lRand < 0.4) {
+            // Dual Fiery Ninja Shurikens aimed at player
+            [-1.8, 1.8].forEach((vy) => {
+              const proj = new Projectile({
+                x: enemy.x - 30,
+                y: enemy.y,
+                vx: -6.5,
+                vy: vy,
+                color: 0xf97316,
+                damage: 18,
+                owner: "enemy",
+                type: "fire"
+              });
+              this.enemyProjectiles.push(proj);
+              this.gameStage.addChild(proj.container);
+            });
+          } else if (lRand < 0.75) {
+            // 5-way lava flame spray
+            [-3, -1.5, 0, 1.5, 3].forEach((vy) => {
+              const proj = new Projectile({
+                x: enemy.x - 40,
+                y: enemy.y,
+                vx: -5.5,
+                vy: vy,
+                color: 0xef4444,
+                damage: 15,
+                owner: "enemy",
+                type: "fire"
+              });
+              this.enemyProjectiles.push(proj);
+              this.gameStage.addChild(proj.container);
+            });
+          } else {
+            // Lava meteor bombs falling
+            for (let i = 0; i < 3; i++) {
+              const proj = new Projectile({
+                x: enemy.x - 20,
+                y: enemy.y - 30,
+                vx: -3.0 - i * 1.5,
+                vy: -5.5 - Math.random() * 2,
+                color: 0xd97706,
+                damage: 20,
+                owner: "enemy",
+                type: "bomb"
+              });
+              this.enemyProjectiles.push(proj);
+              this.gameStage.addChild(proj.container);
+            }
+          }
+        }
+        else if (enemy.type === "dark_monster") {
+          // Dark void orb
+          const proj = new Projectile({
+            x: enemy.x - 18,
+            y: enemy.y,
+            vx: -6.0,
+            vy: (Math.random() - 0.5) * 1.6,
+            color: 0xa855f7,
+            damage: 16,
+            owner: "enemy",
+            type: "acid"
+          });
+          this.enemyProjectiles.push(proj);
+          this.gameStage.addChild(proj.container);
+        }
+        else if (enemy.type === "dark_ninja_boss") {
+          // Final Boss: Dark Ninja Stickman!
+          const dRand = Math.random();
+          if (dRand < 0.35) {
+            // Triple Dark Void Crescent Blades
+            [-2.2, 0, 2.2].forEach((vy) => {
+              const proj = new Projectile({
+                x: enemy.x - 40,
+                y: enemy.y,
+                vx: -7.2,
+                vy: vy,
+                color: 0xc084fc,
+                damage: 22,
+                owner: "enemy",
+                type: "plasma"
+              });
+              this.enemyProjectiles.push(proj);
+              this.gameStage.addChild(proj.container);
+            });
+          } else if (dRand < 0.7) {
+            // 8-way Dark Void Nova Burst
+            for (let a = 0; a < Math.PI * 2; a += Math.PI / 4) {
+              const proj = new Projectile({
+                x: enemy.x + Math.cos(a) * 30,
+                y: enemy.y + Math.sin(a) * 30,
+                vx: Math.cos(a) * 5.5,
+                vy: Math.sin(a) * 5.5,
+                color: 0xe879f9,
+                damage: 18,
+                owner: "enemy",
+                type: "magic_orb"
+              });
+              this.enemyProjectiles.push(proj);
+              this.gameStage.addChild(proj.container);
+            }
+          } else {
+            // Rapid Homing Dark Shadow Orbs
+            for (let i = -1; i <= 1; i++) {
+              const proj = new Projectile({
+                x: enemy.x - 30,
+                y: enemy.y + i * 25,
+                vx: -6.0,
+                vy: i * 1.5,
+                color: 0x3b0764,
+                damage: 20,
+                owner: "enemy",
+                type: "homing"
+              });
+              this.enemyProjectiles.push(proj);
+              this.gameStage.addChild(proj.container);
+            }
+          }
+        }
       }
 
       // Sync Boss Health to HUD
@@ -1597,6 +1822,36 @@ export class GameEngine {
         }
       }
     }
+    else if (level === 5) {
+      // Level 5: Lava Realm flight distance up to 80%, then Lava Ninja Boss required
+      if (this.state.levelProgress < 80) {
+        this.state.levelProgress += dt * 0.0151;
+        if (this.state.levelProgress >= 80) {
+          this.state.levelProgress = 80;
+        }
+      } else {
+        // Boss fight phase!
+        if (this.bossSpawned && !this.bossRef && this.enemies.filter(e => e.type === "lava_ninja_boss").length === 0) {
+          this.state.levelProgress = 100;
+          this.completeLevel();
+        }
+      }
+    }
+    else if (level === 6) {
+      // Level 6: Dark Realm flight distance up to 80%, then Dark Ninja Stickman Final Boss required
+      if (this.state.levelProgress < 80) {
+        this.state.levelProgress += dt * 0.0151;
+        if (this.state.levelProgress >= 80) {
+          this.state.levelProgress = 80;
+        }
+      } else {
+        // Final Boss fight phase!
+        if (this.bossSpawned && !this.bossRef && this.enemies.filter(e => e.type === "dark_ninja_boss").length === 0) {
+          this.state.levelProgress = 100;
+          this.completeLevel();
+        }
+      }
+    }
 
     this.triggerStateChange();
   }
@@ -1605,8 +1860,8 @@ export class GameEngine {
     this.isRunning = false;
     this.triggerShake(5, 30);
     
-    // Complete entire journey if level 4 (final ocean level), otherwise enter Cave Sanctuary
-    if (this.state.currentLevel === 4) {
+    // Complete entire journey if level 6 (final dark realm level), otherwise enter Cave Sanctuary
+    if (this.state.currentLevel === 6) {
       this.state.status = "victory";
     } else {
       this.state.status = "cave_shop";

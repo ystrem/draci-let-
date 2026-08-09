@@ -256,3 +256,75 @@ export class PlayerDragon {
     this.container.destroy({ children: true });
   }
 }
+
+export class BabyDragonFollower {
+  public container: Container;
+  public x: number = 50;
+  public y: number = 225;
+  private animTime: number = 0;
+  private wing: Graphics;
+  private body: Graphics;
+  public lastFired: number = 0;
+
+  constructor() {
+    this.container = new Container();
+    this.body = new Graphics();
+    this.wing = new Graphics();
+
+    this.drawBaby();
+    this.container.addChild(this.body);
+    this.container.addChild(this.wing);
+  }
+
+  private drawBaby() {
+    // Body & head (Cute golden baby dragon)
+    this.body.clear();
+    // Body
+    this.body.ellipse(0, 0, 15, 11).fill({ color: 0xf59e0b });
+    // Cute head
+    this.body.circle(13, -6, 9.5).fill({ color: 0xfbbf24 });
+    // Snout
+    this.body.ellipse(19, -4, 5.5, 4).fill({ color: 0xf59e0b });
+    // Big cute eye
+    this.body.circle(14, -8, 4).fill({ color: 0xffffff });
+    this.body.circle(15, -8, 2.2).fill({ color: 0x1e293b });
+    this.body.circle(15.5, -9, 0.9).fill({ color: 0xffffff });
+    // Cute tiny horns
+    this.body.moveTo(11, -12).lineTo(9, -19).lineTo(14, -13).closePath().fill({ color: 0xd97706 });
+    // Cute tail
+    this.body.moveTo(-13, 2).bezierCurveTo(-23, 6, -27, -2, -29, 2).stroke({ color: 0xd97706, width: 3.5 });
+
+    // Tiny wing
+    this.wing.clear();
+    this.wing.moveTo(0, -2).lineTo(-6, -18).lineTo(-15, -12).lineTo(-10, -2).closePath().fill({ color: 0xd97706 });
+  }
+
+  public update(ticker: any, targetX: number, targetY: number, dt: number = 1) {
+    this.animTime += 0.2 * dt;
+
+    // Smooth lerp follow behind player 1
+    const desiredX = targetX - 52;
+    const desiredY = targetY + Math.sin(this.animTime * 1.5) * 12 + 10;
+
+    this.x += (desiredX - this.x) * Math.min(1, 0.12 * dt);
+    this.y += (desiredY - this.y) * Math.min(1, 0.12 * dt);
+
+    // Flap wings
+    this.wing.scale.y = 0.5 + Math.sin(this.animTime * 2) * 0.5;
+
+    this.container.x = this.x;
+    this.container.y = this.y;
+  }
+
+  public tryShoot(now: number): boolean {
+    if (now - this.lastFired > 1200) {
+      this.lastFired = now;
+      return true;
+    }
+    return false;
+  }
+
+  public destroy() {
+    this.container.destroy({ children: true });
+  }
+}
