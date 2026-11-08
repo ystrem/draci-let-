@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { GameState, DRAGONS, LEVELS } from "../types";
 import {
   Flame,
@@ -30,6 +30,7 @@ import {
   PlusCircle,
   ArrowRight,
   Egg,
+  Gamepad2,
 } from "lucide-react";
 
 interface EditorHUDProps {
@@ -265,24 +266,18 @@ const CHARACTERS_GALLERY = [
   {
     id: "sea_kraken_boss",
     name: "Pravěký Kraken z hlubin",
-    role: "Boss 4. Biomu",
-    biome: "4. Biom: Mořské hlubiny",
-    description: "Obří pravěké mořské monstrum se svíjejícími se chapadly, velkýma zářícíma jantarovýma očima a ostnatou korunou. Chrlí vodní smrště, inkoustové bomby a 10-směrnou vodní sprchu.",
+    role: "Boss 6. Biomu",
+    biome: "6. Biom: Mořské hlubiny",
+    description: "Obří pravěké mořské monstrum se svíjejícími se chapadly, velkýma zářícíma jantarovýma očima a ostnatou korunou.",
     badgeColor: "bg-indigo-500/20 text-indigo-300 border-indigo-500/40",
     renderSvg: () => (
       <svg viewBox="0 0 90 80" className="w-16 h-14">
         <g>
           <circle cx="20" cy="20" r="12" fill="#1e1b4b" />
           <circle cx="70" cy="20" r="12" fill="#1e1b4b" />
-          <circle cx="15" cy="60" r="12" fill="#1e1b4b" />
-          <circle cx="75" cy="60" r="12" fill="#1e1b4b" />
           <ellipse cx="45" cy="35" rx="26" ry="20" fill="#312e81" />
-          <ellipse cx="45" cy="30" rx="20" ry="14" fill="#4338ca" />
-          <polygon points="25,20 35,5 40,20" fill="#6366f1" />
-          <polygon points="65,20 55,5 50,20" fill="#6366f1" />
           <circle cx="33" cy="32" r="5" fill="#f59e0b" />
           <circle cx="57" cy="32" r="5" fill="#f59e0b" />
-          <polygon points="38,45 45,55 52,45" fill="#020617" />
         </g>
       </svg>
     )
@@ -290,22 +285,15 @@ const CHARACTERS_GALLERY = [
   {
     id: "lava_ninja_boss",
     name: "Lávový Ninja Stickman",
-    role: "Boss 5. Biomu",
-    biome: "5. Biom: Lávová Říše",
+    role: "Boss 9. Biomu",
+    biome: "9. Biom: Lávová Říše",
     description: "Zlotřilý ninja bojovník s červenou čelenkou a dvěma ohnivými katanami. Metá lávové projektily, vrhá shurikeny a vyvolává meteorický déšť.",
     badgeColor: "bg-rose-500/20 text-rose-300 border-rose-500/40",
     renderSvg: () => (
       <svg viewBox="0 0 60 70" className="w-12 h-14">
         <g>
           <circle cx="30" cy="18" r="12" fill="#ef4444" />
-          <path d="M18 18 Q30 14 42 18 L40 22 Q30 18 20 22 Z" fill="#991b1b" />
-          <circle cx="26" cy="18" r="2" fill="#fff" />
-          <circle cx="34" cy="18" r="2" fill="#fff" />
           <line x1="30" y1="30" x2="30" y2="52" stroke="#ef4444" strokeWidth="5" />
-          <line x1="30" y1="38" x2="12" y2="28" stroke="#f97316" strokeWidth="4" />
-          <line x1="30" y1="38" x2="48" y2="28" stroke="#f97316" strokeWidth="4" />
-          <line x1="12" y1="28" x2="6" y2="10" stroke="#fef08a" strokeWidth="3" />
-          <line x1="48" y1="28" x2="54" y2="10" stroke="#fef08a" strokeWidth="3" />
         </g>
       </svg>
     )
@@ -313,21 +301,15 @@ const CHARACTERS_GALLERY = [
   {
     id: "dark_ninja_boss",
     name: "Temný Ninja Stickman",
-    role: "Finální Boss 6. Biomu",
-    biome: "6. Biom: Temná Říše",
+    role: "Finální Boss 10. Biomu",
+    biome: "10. Biom: Temná Říše",
     description: "Legenda stínového světa obklopená temnou fialovou aurou. Útočí stínovým teleportem, kosmyckými lasery a fialovými temnými hvězdami.",
     badgeColor: "bg-purple-500/20 text-purple-300 border-purple-500/40",
     renderSvg: () => (
       <svg viewBox="0 0 60 70" className="w-12 h-14">
         <g className="animate-pulse">
           <circle cx="30" cy="18" r="12" fill="#581c87" />
-          <circle cx="26" cy="18" r="2.5" fill="#c084fc" />
-          <circle cx="34" cy="18" r="2.5" fill="#c084fc" />
           <line x1="30" y1="30" x2="30" y2="52" stroke="#a855f7" strokeWidth="5" />
-          <line x1="30" y1="38" x2="10" y2="28" stroke="#c084fc" strokeWidth="4" />
-          <line x1="30" y1="38" x2="50" y2="28" stroke="#c084fc" strokeWidth="4" />
-          <polygon points="10,28 2,12 8,24" fill="#e879f9" />
-          <polygon points="50,28 58,12 52,24" fill="#e879f9" />
         </g>
       </svg>
     )
@@ -388,6 +370,24 @@ const BossHealthBar: React.FC<{ bossHealth: number; bossMaxHealth: number; level
       icon: <Swords className="w-4 h-4 text-emerald-400 animate-bounce" />,
     },
     4: {
+      name: "Ledový Titan Glacieru",
+      title: "Vládce Zmrzlého Ledovce",
+      gradient: "from-sky-300 via-cyan-500 to-blue-700",
+      glowColor: "border-sky-400/50 shadow-[0_0_20px_rgba(56,189,248,0.4)]",
+      bgOverlay: "bg-sky-950/90",
+      textColor: "text-sky-300",
+      icon: <Zap className="w-4 h-4 text-sky-300 animate-bounce" />,
+    },
+    5: {
+      name: "Bouřkový Bleskový Pták",
+      title: "Vládce Bleskové Oblohy",
+      gradient: "from-yellow-300 via-amber-500 to-indigo-700",
+      glowColor: "border-amber-400/50 shadow-[0_0_20px_rgba(251,191,36,0.4)]",
+      bgOverlay: "bg-indigo-950/90",
+      textColor: "text-amber-300",
+      icon: <Zap className="w-4 h-4 text-amber-300 animate-bounce" />,
+    },
+    6: {
       name: "Pravěký Kraken z hlubin",
       title: "Vládce Nekonečného Oceánu",
       gradient: "from-cyan-400 via-indigo-500 to-purple-600",
@@ -396,7 +396,25 @@ const BossHealthBar: React.FC<{ bossHealth: number; bossMaxHealth: number; level
       textColor: "text-cyan-300",
       icon: <Skull className="w-4 h-4 text-cyan-400 animate-bounce" />,
     },
-    5: {
+    7: {
+      name: "Krystalový Dračí Král",
+      title: "Vládce Krystalových Jeskyní",
+      gradient: "from-fuchsia-400 via-purple-500 to-violet-700",
+      glowColor: "border-fuchsia-400/50 shadow-[0_0_20px_rgba(232,121,249,0.4)]",
+      bgOverlay: "bg-purple-950/90",
+      textColor: "text-fuchsia-300",
+      icon: <Sparkles className="w-4 h-4 text-fuchsia-300 animate-bounce" />,
+    },
+    8: {
+      name: "Parní Mechanický Robot",
+      title: "Vládce Mechanického Města",
+      gradient: "from-amber-500 via-orange-600 to-amber-800",
+      glowColor: "border-amber-500/50 shadow-[0_0_20px_rgba(245,158,11,0.4)]",
+      bgOverlay: "bg-amber-950/90",
+      textColor: "text-amber-300",
+      icon: <Swords className="w-4 h-4 text-amber-400 animate-bounce" />,
+    },
+    9: {
       name: "Lávový Ninja Stickman",
       title: "Velký Vládce Lávové Říše",
       gradient: "from-orange-500 via-rose-600 to-amber-500",
@@ -405,7 +423,7 @@ const BossHealthBar: React.FC<{ bossHealth: number; bossMaxHealth: number; level
       textColor: "text-orange-300",
       icon: <Flame className="w-4 h-4 text-orange-400 animate-bounce" />,
     },
-    6: {
+    10: {
       name: "Temný Ninja Stickman",
       title: "Finální Vládce Temné Říše",
       gradient: "from-purple-500 via-fuchsia-600 to-indigo-700",
@@ -560,7 +578,157 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
   const [hideMenuOverlay, setHideMenuOverlay] = useState(false);
   const [selectedLevel, setSelectedLevel] = useState<number>(1);
   const [hatchingStage, setHatchingStage] = useState<number>(0);
+  const [connectedGamepadCount, setConnectedGamepadCount] = useState<number>(0);
+  const [gamepadNames, setGamepadNames] = useState<string[]>([]);
+  const lastGamepadNavRef = useRef<number>(0);
+
   const currentLevelConfig = LEVELS[gameState.currentLevel - 1];
+
+  // Gamepad UI Polling Effect for navigating menus, shop, pause screen, and game over screens
+  useEffect(() => {
+    let animFrameId: number;
+
+    const checkGamepads = () => {
+      const gps = typeof navigator !== "undefined" && navigator.getGamepads ? navigator.getGamepads() : [];
+      const activeGps = Array.from(gps).filter((g): g is Gamepad => g !== null && g.connected);
+
+      setConnectedGamepadCount(activeGps.length);
+      setGamepadNames(
+        activeGps.map((g, idx) => {
+          const rawName = g.id ? g.id.split("(")[0].trim() : `Gamepad ${idx + 1}`;
+          return `${rawName} (Hráč ${idx + 1})`;
+        })
+      );
+
+      if (activeGps.length > 0) {
+        const now = Date.now();
+        if (now - lastGamepadNavRef.current > 180) { // 180ms UI debounce
+          let handled = false;
+
+          for (const gp of activeGps) {
+            if (handled) break;
+
+            const btnA = gp.buttons[0]?.pressed; // A / Cross
+            const btnB = gp.buttons[1]?.pressed; // B / Circle
+            const btnX = gp.buttons[2]?.pressed; // X / Square
+            const btnY = gp.buttons[3]?.pressed; // Y / Triangle
+            const btnLB = gp.buttons[4]?.pressed;
+            const btnRB = gp.buttons[5]?.pressed;
+            const btnLT = gp.buttons[6]?.pressed;
+            const btnRT = gp.buttons[7]?.pressed;
+            const btnSelect = gp.buttons[8]?.pressed;
+            const btnStart = gp.buttons[9]?.pressed;
+            const dpadUp = gp.buttons[12]?.pressed || (gp.axes[1] && gp.axes[1] < -0.5);
+            const dpadDown = gp.buttons[13]?.pressed || (gp.axes[1] && gp.axes[1] > 0.5);
+            const dpadLeft = gp.buttons[14]?.pressed || (gp.axes[0] && gp.axes[0] < -0.5);
+            const dpadRight = gp.buttons[15]?.pressed || (gp.axes[0] && gp.axes[0] > 0.5);
+
+            // 1. MAIN MENU SCREEN
+            if (gameState.status === "menu") {
+              if (btnStart || btnA) {
+                onStartLevel(selectedLevel || 1);
+                handled = true;
+              } else if (dpadLeft || btnLB) {
+                setSelectedLevel((prev) => Math.max(1, prev - 1));
+                handled = true;
+              } else if (dpadRight || btnRB) {
+                setSelectedLevel((prev) => Math.min(10, prev + 1));
+                handled = true;
+              } else if (dpadUp || btnLT) {
+                if (onSetPlayerCount) onSetPlayerCount(Math.min(4, gameState.playerCount + 1));
+                handled = true;
+              } else if (dpadDown || btnRT) {
+                if (onSetPlayerCount) onSetPlayerCount(Math.max(1, gameState.playerCount - 1));
+                handled = true;
+              } else if (btnX) {
+                if (onToggleMute) onToggleMute();
+                handled = true;
+              } else if (btnY) {
+                setShowCharactersModal((prev) => !prev);
+                handled = true;
+              }
+            }
+
+            // 2. CAVE SANCTUARY / SHOP SCREEN
+            else if (gameState.status === "cave_shop") {
+              if (btnA || dpadUp) {
+                if (onUpgradeHealth) onUpgradeHealth();
+                handled = true;
+              } else if (btnX || dpadLeft) {
+                if (onUpgradeFireRate) onUpgradeFireRate();
+                handled = true;
+              } else if (btnY || dpadRight) {
+                if (onUpgradeDamage) onUpgradeDamage();
+                handled = true;
+              } else if (btnB || dpadDown) {
+                if (onUpgradeSpeed) onUpgradeSpeed();
+                handled = true;
+              } else if (btnStart || btnRB || btnLB) {
+                if (onNextLevelFromCave) onNextLevelFromCave();
+                handled = true;
+              } else if (btnSelect || btnRT || btnLT) {
+                if (onUnlockBabyDragon) onUnlockBabyDragon();
+                handled = true;
+              }
+            }
+
+            // 3. PAUSED SCREEN
+            else if (gameState.status === "playing" && gameState.isPaused) {
+              if (btnStart || btnA) {
+                onTogglePause();
+                handled = true;
+              } else if (btnB || btnX) {
+                onResetGame();
+                handled = true;
+              }
+            }
+
+            // 4. GAME OVER OR VICTORY SCREEN
+            else if (gameState.status === "game_over" || gameState.status === "victory") {
+              if (btnA || btnStart || btnB) {
+                setHatchingStage(0);
+                onResetGame();
+                handled = true;
+              }
+            }
+
+            // 5. CHARACTER GALLERY MODAL
+            if (showCharactersModal && (btnB || btnSelect || btnStart)) {
+              setShowCharactersModal(false);
+              handled = true;
+            }
+          }
+
+          if (handled) {
+            lastGamepadNavRef.current = now;
+          }
+        }
+      }
+
+      animFrameId = requestAnimationFrame(checkGamepads);
+    };
+
+    animFrameId = requestAnimationFrame(checkGamepads);
+
+    return () => cancelAnimationFrame(animFrameId);
+  }, [
+    gameState.status,
+    gameState.isPaused,
+    gameState.playerCount,
+    selectedLevel,
+    showCharactersModal,
+    onStartLevel,
+    onSetPlayerCount,
+    onToggleMute,
+    onUpgradeHealth,
+    onUpgradeFireRate,
+    onUpgradeDamage,
+    onUpgradeSpeed,
+    onNextLevelFromCave,
+    onUnlockBabyDragon,
+    onTogglePause,
+    onResetGame,
+  ]);
 
   const handleHueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onUpdateStats(parseFloat(e.target.value), gameState.manualSpeed, gameState.manualFireRate);
@@ -652,6 +820,23 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
 
         {/* Global Toolbar */}
         <div className="flex items-center gap-3">
+          {/* Gamepad Status Badge */}
+          {connectedGamepadCount > 0 ? (
+            <div className="flex items-center gap-2 bg-indigo-950/80 border border-indigo-500/50 px-3 py-1.5 rounded-lg text-xs font-semibold text-indigo-300 shadow-lg shadow-indigo-500/10">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <Gamepad2 className="w-4 h-4 text-indigo-400" />
+              <span>🎮 Gamepad Aktivní ({connectedGamepadCount})</span>
+            </div>
+          ) : (
+            <div className="hidden sm:flex items-center gap-1.5 bg-slate-900/60 border border-slate-800 px-3 py-1.5 rounded-lg text-[11px] font-medium text-slate-400" title="Připojte libovolný Gamepad přes USB nebo Bluetooth">
+              <Gamepad2 className="w-3.5 h-3.5 text-slate-500" />
+              <span>Připojte Gamepad</span>
+            </div>
+          )}
+
           <button
             id="btn-sound-mute"
             onClick={onToggleMute}
@@ -799,8 +984,19 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
                     Tajemná Jeskynní Svatyně & Vylepšení
                   </h2>
                   <p className="text-slate-400 text-xs md:text-sm mt-1 max-w-xl mx-auto leading-relaxed">
-                    Váš drak bezpečně přistál v krystalové jeskyni. Využijte nasbírané krystaly a body k vylepšení životů, rychlosti letu a síly střelby před vstupem do dalšího biomu!
+                    Váš drak bezpečně přistál v krystalové jeskyni. Využijte nasbírané krystaly k vylepšení životů, rychlosti a střelby!
                   </p>
+                  
+                  {/* Gamepad Helper Bar */}
+                  <div className="mt-3 inline-flex flex-wrap items-center justify-center gap-3 bg-indigo-950/70 border border-indigo-500/30 px-4 py-2 rounded-xl text-xs font-semibold text-indigo-300 shadow-md">
+                    <Gamepad2 className="w-4 h-4 text-indigo-400" />
+                    <span>Ovládání Gamepadem v obchodě:</span>
+                    <span className="text-emerald-400 font-bold">[A] Životy</span>
+                    <span className="text-rose-400 font-bold">[X] Kadence</span>
+                    <span className="text-amber-400 font-bold">[Y] Poškození</span>
+                    <span className="text-sky-400 font-bold">[B] Rychlost</span>
+                    <span className="text-indigo-200 font-bold">[Start / RB] Pokračovat</span>
+                  </div>
                 </div>
 
                 {/* Balance & Dragon Status */}
@@ -1302,17 +1498,17 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
                       </div>
                     </div>
 
-                    {/* Biome Selection Grid (6 Biomes) */}
+                    {/* Biome Selection Grid (10 Biomes) */}
                     <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 mb-6">
                       <div className="flex items-center justify-between mb-3">
                         <span className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-2">
-                          <Compass className="w-4 h-4" /> Výběr biomu pro let (6 Biomů):
+                          <Compass className="w-4 h-4" /> Výběr biomu pro let (10 Biomů):
                         </span>
                         <span className="text-xs font-semibold text-slate-300">
                           Vybráno: <strong className="text-amber-400">{LEVELS.find((l) => l.id === selectedLevel)?.title}</strong>
                         </span>
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5">
                         {LEVELS.map((lvl) => {
                           const isSelected = selectedLevel === lvl.id;
                           const biomeStyles: Record<number, { border: string; bg: string; badge: string; text: string }> = {
@@ -1320,8 +1516,12 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
                             2: { border: "border-amber-500", bg: "bg-amber-950/70", badge: "bg-amber-500/20 text-amber-300 border-amber-500/40", text: "text-amber-300" },
                             3: { border: "border-emerald-500", bg: "bg-emerald-950/70", badge: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40", text: "text-emerald-300" },
                             4: { border: "border-cyan-500", bg: "bg-cyan-950/70", badge: "bg-cyan-500/20 text-cyan-300 border-cyan-500/40", text: "text-cyan-300" },
-                            5: { border: "border-rose-500", bg: "bg-rose-950/70", badge: "bg-rose-500/20 text-rose-300 border-rose-500/40", text: "text-rose-300" },
-                            6: { border: "border-purple-500", bg: "bg-purple-950/70", badge: "bg-purple-500/20 text-purple-300 border-purple-500/40", text: "text-purple-300" },
+                            5: { border: "border-blue-500", bg: "bg-blue-950/70", badge: "bg-blue-500/20 text-blue-300 border-blue-500/40", text: "text-blue-300" },
+                            6: { border: "border-teal-500", bg: "bg-teal-950/70", badge: "bg-teal-500/20 text-teal-300 border-teal-500/40", text: "text-teal-300" },
+                            7: { border: "border-fuchsia-500", bg: "bg-fuchsia-950/70", badge: "bg-fuchsia-500/20 text-fuchsia-300 border-fuchsia-500/40", text: "text-fuchsia-300" },
+                            8: { border: "border-orange-500", bg: "bg-orange-950/70", badge: "bg-orange-500/20 text-orange-300 border-orange-500/40", text: "text-orange-300" },
+                            9: { border: "border-rose-500", bg: "bg-rose-950/70", badge: "bg-rose-500/20 text-rose-300 border-rose-500/40", text: "text-rose-300" },
+                            10: { border: "border-purple-500", bg: "bg-purple-950/70", badge: "bg-purple-500/20 text-purple-300 border-purple-500/40", text: "text-purple-300" },
                           };
                           const style = biomeStyles[lvl.id] || biomeStyles[1];
 
@@ -1329,19 +1529,19 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
                             <button
                               key={lvl.id}
                               onClick={() => setSelectedLevel(lvl.id)}
-                              className={`p-3 rounded-xl border text-left transition-all duration-200 flex flex-col justify-between cursor-pointer ${
+                              className={`p-2.5 rounded-xl border text-left transition-all duration-200 flex flex-col justify-between cursor-pointer ${
                                 isSelected
                                   ? `${style.bg} ${style.border} shadow-lg shadow-amber-500/10 scale-102 ring-1 ring-amber-400`
                                   : "bg-slate-950/80 border-slate-800 hover:border-slate-700 hover:bg-slate-900/60"
                               }`}
                             >
                               <div className="flex items-center justify-between mb-1">
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${style.badge}`}>
+                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md border ${style.badge}`}>
                                   {lvl.id}. Biom
                                 </span>
                                 {isSelected && <Sparkles className="w-3.5 h-3.5 text-amber-400" />}
                               </div>
-                              <h4 className="font-bold text-white text-xs mt-1">{lvl.title}</h4>
+                              <h4 className="font-bold text-white text-xs mt-1 leading-snug">{lvl.title}</h4>
                               <p className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">{lvl.subtitle}</p>
                             </button>
                           );
@@ -1669,98 +1869,51 @@ export const EditorHUD: React.FC<EditorHUDProps> = ({
             {/* Advanced Level Testing commands */}
             <div className="bg-slate-900/40 rounded-xl border border-slate-900 p-4 space-y-3 mt-4">
               <h3 className="text-xs font-bold text-slate-300 uppercase tracking-widest flex items-center gap-1">
-                <Sliders className="w-3.5 h-3.5" /> Správce úrovní (6 Biomů)
+                <Sliders className="w-3.5 h-3.5 text-amber-400" /> Správce úrovní (10 Biomů)
               </h3>
               
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-2 gap-2">
                 <button
                   id="btn-skip-level"
                   onClick={onSkipLevel}
-                  className="px-3 py-2 rounded bg-slate-950 border border-slate-800 hover:bg-slate-900 text-xs text-amber-500 font-semibold transition flex items-center justify-center gap-1 col-span-2 cursor-pointer"
+                  className="px-3 py-2 rounded bg-slate-950 border border-slate-800 hover:bg-slate-900 text-xs text-amber-500 font-semibold transition flex items-center justify-center gap-1 col-span-2 cursor-pointer mb-1"
                 >
                   <SkipForward className="w-3.5 h-3.5" /> Přeskočit aktuální biom
                 </button>
-                <button
-                  id="btn-level1"
-                  onClick={() => onStartLevel(1)}
-                  className={`px-3 py-2 rounded border text-xs font-semibold transition cursor-pointer ${
-                    gameState.currentLevel === 1
-                      ? "bg-amber-500 text-slate-950 border-amber-400 font-bold"
-                      : "bg-slate-950 border-slate-800 hover:bg-slate-900 text-slate-300"
-                  }`}
-                >
-                  1. Hory
-                </button>
-                <button
-                  id="btn-level2"
-                  onClick={() => onStartLevel(2)}
-                  className={`px-3 py-2 rounded border text-xs font-semibold transition cursor-pointer ${
-                    gameState.currentLevel === 2
-                      ? "bg-amber-500 text-slate-950 border-amber-400 font-bold"
-                      : "bg-slate-950 border-slate-800 hover:bg-slate-900 text-slate-300"
-                  }`}
-                >
-                  2. Poušť
-                </button>
-                <button
-                  id="btn-level3"
-                  onClick={() => onStartLevel(3)}
-                  className={`px-3 py-2 rounded border text-xs font-semibold transition cursor-pointer ${
-                    gameState.currentLevel === 3
-                      ? "bg-amber-500 text-slate-950 border-amber-400 font-bold"
-                      : "bg-slate-950 border-slate-800 hover:bg-slate-900 text-slate-300"
-                  }`}
-                >
-                  3. Les
-                </button>
-                <button
-                  id="btn-level4"
-                  onClick={() => onStartLevel(4)}
-                  className={`px-3 py-2 rounded border text-xs font-semibold transition cursor-pointer ${
-                    gameState.currentLevel === 4
-                      ? "bg-amber-500 text-slate-950 border-amber-400 font-bold"
-                      : "bg-slate-950 border-cyan-800/80 hover:bg-cyan-950/60 text-cyan-300"
-                  }`}
-                >
-                  4. Oceán
-                </button>
-                <button
-                  id="btn-level5"
-                  onClick={() => onStartLevel(5)}
-                  className={`px-3 py-2 rounded border text-xs font-semibold transition cursor-pointer ${
-                    gameState.currentLevel === 5
-                      ? "bg-amber-500 text-slate-950 border-amber-400 font-bold"
-                      : "bg-slate-950 border-rose-800/80 hover:bg-rose-950/60 text-rose-300"
-                  }`}
-                >
-                  5. Lávová Říše
-                </button>
-                <button
-                  id="btn-level6"
-                  onClick={() => onStartLevel(6)}
-                  className={`px-3 py-2 rounded border text-xs font-semibold transition cursor-pointer ${
-                    gameState.currentLevel === 6
-                      ? "bg-amber-500 text-slate-950 border-amber-400 font-bold"
-                      : "bg-slate-950 border-purple-800/80 hover:bg-purple-950/60 text-purple-300"
-                  }`}
-                >
-                  6. Temná Říše
-                </button>
+                {LEVELS.map((lvl) => (
+                  <button
+                    key={lvl.id}
+                    id={`btn-level${lvl.id}`}
+                    onClick={() => onStartLevel(lvl.id)}
+                    className={`px-2.5 py-2 rounded border text-xs font-semibold transition cursor-pointer text-left truncate flex items-center gap-1.5 ${
+                      gameState.currentLevel === lvl.id
+                        ? "bg-amber-500 text-slate-950 border-amber-400 font-bold"
+                        : "bg-slate-950 border-slate-800 hover:bg-slate-900 text-slate-300"
+                    }`}
+                    title={`${lvl.id}. ${lvl.title}`}
+                  >
+                    <span className="opacity-60 text-[10px]">{lvl.id}.</span> {lvl.title.split(' ')[0]}
+                  </button>
+                ))}
               </div>
             </div>
 
             {/* Gameplay Rules Refcard */}
             <div className="bg-slate-950 rounded-xl border border-slate-900 p-4 space-y-2 text-slate-400">
               <h4 className="text-xs font-bold text-slate-300 flex items-center gap-1 uppercase">
-                <HelpCircle className="w-3.5 h-3.5" /> Přehled nebezpečí v 6 biomech
+                <HelpCircle className="w-3.5 h-3.5" /> Přehled nebezpečí v 10 biomech
               </h4>
               <ul className="space-y-1 text-[11px] list-disc pl-4 leading-relaxed">
-                <li><strong className="text-sky-400">1. úroveň:</strong> Kixskuske hory - Nagy se plazí, lučištníci a kouzelníci střílejí projektily.</li>
-                <li><strong className="text-amber-400">2. úroveň:</strong> Poušť Bojli - Obří písečný červ se vynořuje svisle a pouštní čarodějové útočí.</li>
-                <li><strong className="text-emerald-400">3. úroveň:</strong> Masivní les - Rytíři, trpaslíci a prastarý lesní gigant.</li>
-                <li><strong className="text-cyan-400">4. úroveň:</strong> Mořské hlubiny - Medúzy, piraně, mořští hadi a pravěký Kraken!</li>
-                <li><strong className="text-rose-400">5. úroveň:</strong> Lávová Říše - Žhavá láva, ohniví drakové a Lávový Ninja Stickman s meteority!</li>
-                <li><strong className="text-purple-400">6. úroveň:</strong> Temná Říše - Kosmická stínová propast, temná monstra a finální Temný Ninja Stickman!</li>
+                <li><strong className="text-sky-400">1. úroveň:</strong> Kixskuske hory - Nagy, lučištníci a Horský Titán.</li>
+                <li><strong className="text-amber-400">2. úroveň:</strong> Poušť Bojli - Čarodějové a obří Písečný Červ.</li>
+                <li><strong className="text-emerald-400">3. úroveň:</strong> Masivní les - Rytíři, trpaslíci a Lesní Gigant.</li>
+                <li><strong className="text-cyan-400">4. úroveň:</strong> Zmrzlý Ledovec - Harpyje a Ledový Dračí Titán.</li>
+                <li><strong className="text-blue-400">5. úroveň:</strong> Blesková Obloha - Bouřkoví ptáci a Nebeský Vládce.</li>
+                <li><strong className="text-teal-400">6. úroveň:</strong> Mořské hlubiny - Medúzy, piraně a Pravěký Kraken.</li>
+                <li><strong className="text-fuchsia-400">7. úroveň:</strong> Krystalové Jeskyně - Netopýři a Krystalový Drak.</li>
+                <li><strong className="text-orange-400">8. úroveň:</strong> Mechanické Město - Parní drony a Parní Kolos.</li>
+                <li><strong className="text-rose-400">9. úroveň:</strong> Lávová Říše - Lávoví drakové a Lávový Ninja Stickman.</li>
+                <li><strong className="text-purple-400">10. úroveň:</strong> Temná Říše - Temná monstra a finální Temný Ninja Stickman!</li>
               </ul>
             </div>
 

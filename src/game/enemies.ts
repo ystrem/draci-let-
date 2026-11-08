@@ -1,6 +1,6 @@
 import { Container, Graphics } from "pixi.js";
 
-export type EnemyType = "naga" | "dragon_monster" | "giant_worm" | "worm_tail" | "dwarf" | "mountain_boss" | "forest_boss" | "sea_jelly" | "sea_piranha" | "sea_serpent" | "sea_kraken_boss" | "lava_dragon_enemy" | "lava_ninja_boss" | "dark_monster" | "dark_ninja_boss";
+export type EnemyType = "naga" | "dragon_monster" | "giant_worm" | "worm_tail" | "dwarf" | "mountain_boss" | "forest_boss" | "sea_jelly" | "sea_piranha" | "sea_serpent" | "sea_kraken_boss" | "lava_dragon_enemy" | "lava_ninja_boss" | "dark_monster" | "dark_ninja_boss" | "ice_harpy" | "ice_titan_boss" | "storm_bird" | "storm_sky_boss" | "crystal_bat" | "crystal_dragon_boss" | "steam_drone" | "steam_mech_boss";
 
 export class Enemy {
   public container: Container;
@@ -185,37 +185,133 @@ export class Enemy {
       case "lava_ninja_boss":
         this.width = 110;
         this.height = 120;
-        this.health = 1300; // Large Lava Ninja Boss
-        this.maxHealth = 1300;
+        this.health = 2800; // Boosted Lava Ninja Boss (Level 9)
+        this.maxHealth = 2800;
         this.speedX = 0;
         this.speedY = 0;
-        this.damage = 38;
-        this.fireRate = 850;
+        this.damage = 42;
+        this.fireRate = 750;
         this.buildLavaNinjaBoss();
         break;
 
       case "dark_monster":
         this.width = 48;
         this.height = 48;
-        this.health = 45;
-        this.maxHealth = 45;
+        this.health = 48;
+        this.maxHealth = 48;
         this.speedX = -(2.5 + Math.random() * 1.8);
         this.speedY = 0;
         this.damage = 22;
-        this.fireRate = 1300;
+        this.fireRate = 1200;
         this.buildDarkMonster();
         break;
 
       case "dark_ninja_boss":
-        this.width = 120;
-        this.height = 130;
-        this.health = 1600; // Final Ultimate Boss: Dark Ninja Stickman
-        this.maxHealth = 1600;
+        this.width = 125;
+        this.height = 135;
+        this.health = 4000; // Final Ultimate Boss: Dark Ninja Stickman (Level 10)
+        this.maxHealth = 4000;
         this.speedX = 0;
         this.speedY = 0;
-        this.damage = 42;
-        this.fireRate = 700;
+        this.damage = 48;
+        this.fireRate = 600;
         this.buildDarkNinjaBoss();
+        break;
+
+      case "ice_harpy":
+        this.width = 40;
+        this.height = 35;
+        this.health = 30;
+        this.maxHealth = 30;
+        this.speedX = -(2.5 + Math.random() * 1.2);
+        this.speedY = 0;
+        this.damage = 14;
+        this.fireRate = 1500;
+        this.buildIceHarpy();
+        break;
+
+      case "ice_titan_boss":
+        this.width = 130;
+        this.height = 110;
+        this.health = 1200; // Level 4 Ice Boss
+        this.maxHealth = 1200;
+        this.speedX = 0;
+        this.speedY = 0;
+        this.damage = 32;
+        this.fireRate = 950;
+        this.buildIceTitanBoss();
+        break;
+
+      case "storm_bird":
+        this.width = 44;
+        this.height = 38;
+        this.health = 35;
+        this.maxHealth = 35;
+        this.speedX = -(3.0 + Math.random() * 1.5);
+        this.speedY = 0;
+        this.damage = 16;
+        this.fireRate = 1300;
+        this.buildStormBird();
+        break;
+
+      case "storm_sky_boss":
+        this.width = 135;
+        this.height = 115;
+        this.health = 1400; // Level 5 Sky Boss
+        this.maxHealth = 1400;
+        this.speedX = 0;
+        this.speedY = 0;
+        this.damage = 35;
+        this.fireRate = 880;
+        this.buildStormSkyBoss();
+        break;
+
+      case "crystal_bat":
+        this.width = 42;
+        this.height = 36;
+        this.health = 40;
+        this.maxHealth = 40;
+        this.speedX = -(2.6 + Math.random() * 1.4);
+        this.speedY = 0;
+        this.damage = 18;
+        this.fireRate = 1400;
+        this.buildCrystalBat();
+        break;
+
+      case "crystal_dragon_boss":
+        this.width = 140;
+        this.height = 120;
+        this.health = 1800; // Level 7 Crystal Boss
+        this.maxHealth = 1800;
+        this.speedX = 0;
+        this.speedY = 0;
+        this.damage = 38;
+        this.fireRate = 820;
+        this.buildCrystalDragonBoss();
+        break;
+
+      case "steam_drone":
+        this.width = 45;
+        this.height = 42;
+        this.health = 48;
+        this.maxHealth = 48;
+        this.speedX = -(2.2 + Math.random() * 1.2);
+        this.speedY = 0;
+        this.damage = 20;
+        this.fireRate = 1200;
+        this.buildSteamDrone();
+        break;
+
+      case "steam_mech_boss":
+        this.width = 145;
+        this.height = 125;
+        this.health = 2200; // Level 8 Mech Boss
+        this.maxHealth = 2200;
+        this.speedX = 0;
+        this.speedY = 0;
+        this.damage = 40;
+        this.fireRate = 780;
+        this.buildSteamMechBoss();
         break;
     }
 
@@ -929,6 +1025,67 @@ export class Enemy {
         this.container.rotation = Math.sin(this.animTime * 0.8) * 0.15;
         break;
       }
+
+      case "ice_harpy": {
+        this.y += Math.sin(this.animTime * 2.2) * 1.8 * dt;
+        break;
+      }
+
+      case "ice_titan_boss": {
+        if (this.x > 630) {
+          this.speedX = -1.8;
+        } else {
+          this.speedX = 0;
+        }
+        this.y = 210 + Math.sin(this.animTime * 1.0) * 75;
+        break;
+      }
+
+      case "storm_bird": {
+        const dy = playerY - this.y;
+        this.y += Math.sign(dy) * 1.5 * dt + Math.sin(this.animTime * 2.5) * 1.0;
+        break;
+      }
+
+      case "storm_sky_boss": {
+        if (this.x > 620) {
+          this.speedX = -2.0;
+        } else {
+          this.speedX = 0;
+        }
+        this.y = 210 + Math.sin(this.animTime * 1.4) * 80;
+        break;
+      }
+
+      case "crystal_bat": {
+        this.y += Math.sin(this.animTime * 2.0) * 2.0 * dt;
+        break;
+      }
+
+      case "crystal_dragon_boss": {
+        if (this.x > 630) {
+          this.speedX = -1.6;
+        } else {
+          this.speedX = 0;
+        }
+        this.y = 220 + Math.sin(this.animTime * 1.1) * 70;
+        break;
+      }
+
+      case "steam_drone": {
+        this.y += Math.cos(this.animTime * 1.8) * 1.4 * dt;
+        break;
+      }
+
+      case "steam_mech_boss": {
+        if (this.x > 620) {
+          this.speedX = -1.8;
+        } else {
+          this.speedX = 0;
+        }
+        this.y = 220 + Math.sin(this.animTime * 1.3) * 80;
+        break;
+      }
     }
 
     this.container.x = this.x;
@@ -977,6 +1134,38 @@ export class Enemy {
         height: 110
       };
     }
+    if (this.type === "ice_titan_boss") {
+      return {
+        x: this.x - 60,
+        y: this.y - 50,
+        width: 120,
+        height: 100
+      };
+    }
+    if (this.type === "storm_sky_boss") {
+      return {
+        x: this.x - 65,
+        y: this.y - 50,
+        width: 130,
+        height: 105
+      };
+    }
+    if (this.type === "crystal_dragon_boss") {
+      return {
+        x: this.x - 65,
+        y: this.y - 55,
+        width: 130,
+        height: 110
+      };
+    }
+    if (this.type === "steam_mech_boss") {
+      return {
+        x: this.x - 70,
+        y: this.y - 60,
+        width: 140,
+        height: 120
+      };
+    }
     if (this.type === "lava_ninja_boss") {
       return {
         x: this.x - 55,
@@ -1007,7 +1196,11 @@ export class Enemy {
       this.type === "mountain_boss" ||
       this.type === "giant_worm" ||
       this.type === "forest_boss" ||
+      this.type === "ice_titan_boss" ||
+      this.type === "storm_sky_boss" ||
       this.type === "sea_kraken_boss" ||
+      this.type === "crystal_dragon_boss" ||
+      this.type === "steam_mech_boss" ||
       this.type === "lava_ninja_boss" ||
       this.type === "dark_ninja_boss"
     );
@@ -1022,6 +1215,123 @@ export class Enemy {
     }, 100);
 
     return this.health <= 0;
+  }
+
+  private buildIceHarpy() {
+    const g = this.mainGraphics;
+    g.clear();
+    // Ice winged harpy
+    g.ellipse(0, 0, 15, 10).fill({ color: 0x38bdf8 });
+    g.circle(-8, -4, 6).fill({ color: 0xe0f2fe });
+    g.circle(-10, -5, 1.5).fill({ color: 0x0284c7 });
+    // Sharp icy wing
+    g.moveTo(0, -5).lineTo(10, -22).lineTo(-10, -10).closePath().fill({ color: 0xbae6fd });
+    g.moveTo(0, 5).lineTo(10, 22).lineTo(-10, 10).closePath().fill({ color: 0xbae6fd });
+    this.container.addChild(g);
+  }
+
+  private buildIceTitanBoss() {
+    const g = this.mainGraphics;
+    g.clear();
+    // Frost Dragon Titan Body
+    g.ellipse(0, 0, 55, 35).fill({ color: 0x0284c7 });
+    g.ellipse(0, 0, 45, 25).fill({ color: 0x38bdf8 });
+    // Spiky ice crown
+    g.circle(-35, -15, 18).fill({ color: 0x0369a1 });
+    g.circle(-38, -17, 3).fill({ color: 0xffffff });
+    g.moveTo(-45, -30).lineTo(-35, -15).lineTo(-25, -28).closePath().fill({ color: 0xe0f2fe });
+    // Massive glacier wings
+    g.moveTo(-10, -20).lineTo(40, -60).lineTo(15, -10).closePath().fill({ color: 0x7dd3fc });
+    g.moveTo(-10, 20).lineTo(40, 60).lineTo(15, 10).closePath().fill({ color: 0x7dd3fc });
+    this.container.addChild(g);
+  }
+
+  private buildStormBird() {
+    const g = this.mainGraphics;
+    g.clear();
+    // Electric yellow/blue hawk
+    g.ellipse(0, 0, 18, 11).fill({ color: 0xeab308 });
+    g.circle(-10, -3, 6).fill({ color: 0xfef08a });
+    g.circle(-12, -4, 2).fill({ color: 0x000000 });
+    // Wings with lightning tips
+    g.moveTo(2, -4).lineTo(15, -24).lineTo(-8, -8).closePath().fill({ color: 0x38bdf8 });
+    g.moveTo(2, 4).lineTo(15, 24).lineTo(-8, 8).closePath().fill({ color: 0x38bdf8 });
+    this.container.addChild(g);
+  }
+
+  private buildStormSkyBoss() {
+    const g = this.mainGraphics;
+    g.clear();
+    // Celestial Storm Lord
+    g.ellipse(0, 0, 60, 40).fill({ color: 0x1e3a8a });
+    g.ellipse(0, 0, 48, 30).fill({ color: 0x3b82f6 });
+    // Glowing golden eyes and thunder horns
+    g.circle(-40, -10, 16).fill({ color: 0x1d4ed8 });
+    g.circle(-44, -12, 3.5).fill({ color: 0xfde047 });
+    g.poly([-50, -25, -42, -10, -32, -22]).fill({ color: 0xfacc15 });
+    // Cloud wings with arc electricity
+    g.moveTo(-5, -25).lineTo(45, -65).lineTo(20, -15).closePath().fill({ color: 0x93c5fd });
+    g.moveTo(-5, 25).lineTo(45, 65).lineTo(20, 15).closePath().fill({ color: 0x93c5fd });
+    this.container.addChild(g);
+  }
+
+  private buildCrystalBat() {
+    const g = this.mainGraphics;
+    g.clear();
+    // Violet crystal bat
+    g.ellipse(0, 0, 14, 10).fill({ color: 0x9333ea });
+    g.circle(-6, -3, 5).fill({ color: 0xc084fc });
+    g.circle(-8, -4, 1.5).fill({ color: 0xffffff });
+    // Diamond wing facets
+    g.poly([0, -5, 18, -20, 5, -8]).fill({ color: 0xe879f9 });
+    g.poly([0, 5, 18, 20, 5, 8]).fill({ color: 0xe879f9 });
+    this.container.addChild(g);
+  }
+
+  private buildCrystalDragonBoss() {
+    const g = this.mainGraphics;
+    g.clear();
+    // Prism Dragon
+    g.ellipse(0, 0, 58, 38).fill({ color: 0x6b21a8 });
+    g.ellipse(0, 0, 46, 28).fill({ color: 0xa855f7 });
+    g.circle(-38, -12, 18).fill({ color: 0x581c87 });
+    g.circle(-42, -14, 3.5).fill({ color: 0xf472b6 });
+    // Glowing crystal spines
+    g.poly([-30, -30, -20, -15, -10, -28]).fill({ color: 0xf472b6 });
+    g.poly([-10, -32, 0, -15, 10, -30]).fill({ color: 0xe879f9 });
+    // Radiant crystal wings
+    g.moveTo(-8, -22).lineTo(50, -62).lineTo(18, -12).closePath().fill({ color: 0xf0abfc });
+    g.moveTo(-8, 22).lineTo(50, 62).lineTo(18, 12).closePath().fill({ color: 0xf0abfc });
+    this.container.addChild(g);
+  }
+
+  private buildSteamDrone() {
+    const g = this.mainGraphics;
+    g.clear();
+    // Brass gear drone
+    g.circle(0, 0, 14).fill({ color: 0xd97706 });
+    g.circle(0, 0, 10).fill({ color: 0xb45309 });
+    g.circle(-4, -2, 3).fill({ color: 0x00f0ff }); // Blue optic lens
+    // Propeller rotor
+    g.rect(-16, -3, 32, 6).fill({ color: 0x78350f });
+    this.container.addChild(g);
+  }
+
+  private buildSteamMechBoss() {
+    const g = this.mainGraphics;
+    g.clear();
+    // Massive Steam-powered Mechanical Dragon
+    g.roundRect(-50, -30, 90, 60, 12).fill({ color: 0x78350f });
+    g.roundRect(-42, -22, 74, 44, 8).fill({ color: 0xb45309 });
+    g.circle(-35, -10, 16).fill({ color: 0xd97706 });
+    g.circle(-38, -12, 4).fill({ color: 0x06b6d4 }); // Glowing optic core
+    // Steam chimneys
+    g.rect(10, -42, 12, 20).fill({ color: 0x451a03 });
+    g.rect(28, -38, 10, 16).fill({ color: 0x451a03 });
+    // Metallic gear wings
+    g.poly([-10, -25, 48, -60, 20, -15]).fill({ color: 0xf59e0b });
+    g.poly([-10, 25, 48, 60, 20, 15]).fill({ color: 0xf59e0b });
+    this.container.addChild(g);
   }
 
   public destroy() {

@@ -1,9 +1,15 @@
-import { useEffect, useRef, useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { GameEngine } from "./game/gameEngine";
 import { EditorHUD } from "./components/EditorHUD";
 import { GameState, DRAGONS } from "./types";
+import { EragonGameView } from "./components/EragonGameView";
+import { Sparkles, Gamepad2 } from "lucide-react";
 
 export default function App() {
+  // Mode selection: default to "3d_eragon" as requested by the user
+  const [gameMode, setGameMode] = useState<"3d_eragon" | "2d_arcade">("3d_eragon");
+
+  // 2D Arcade State & Refs
   const containerRef = useRef<HTMLDivElement | null>(null);
   const engineRef = useRef<GameEngine | null>(null);
 
@@ -35,20 +41,8 @@ export default function App() {
   });
 
   useEffect(() => {
-    // Suppress transient WebGL context loss errors in sandbox preview
-    const handleContextError = (e: ErrorEvent | PromiseRejectionEvent) => {
-      const msg = 'reason' in e ? e.reason?.message : e.message;
-      if (typeof msg === "string" && (msg.includes("WebGL") || msg.includes("shader") || msg.includes("context may be lost"))) {
-        if ('preventDefault' in e && typeof e.preventDefault === 'function') {
-          e.preventDefault();
-        }
-      }
-    };
-    window.addEventListener("error", handleContextError);
-    window.addEventListener("unhandledrejection", handleContextError);
-
-    // Only initialize once on mount
-    if (containerRef.current && !engineRef.current) {
+    // Only initialize 2D engine if in 2D mode
+    if (gameMode === "2d_arcade" && containerRef.current && !engineRef.current) {
       const engine = new GameEngine(
         containerRef.current,
         DRAGONS[0],
@@ -60,15 +54,18 @@ export default function App() {
       engine.init();
     }
 
+    if (gameMode !== "2d_arcade" && engineRef.current) {
+      engineRef.current.destroy();
+      engineRef.current = null;
+    }
+
     return () => {
-      window.removeEventListener("error", handleContextError);
-      window.removeEventListener("unhandledrejection", handleContextError);
       if (engineRef.current) {
         engineRef.current.destroy();
         engineRef.current = null;
       }
     };
-  }, []);
+  }, [gameMode]);
 
   const handleSelectDragon = (dragonId: string) => {
     const drag = DRAGONS.find((d) => d.id === dragonId);
@@ -133,27 +130,60 @@ export default function App() {
   const handleUnlockBabyDragon = () => engineRef.current?.unlockBabyDragon();
 
   return (
-    <div id="app-root-container" className="w-screen h-screen overflow-hidden bg-slate-950">
-      <EditorHUD
-        containerRef={containerRef}
-        gameState={gameState}
-        onSelectDragon={handleSelectDragon}
-        onUpdateStats={handleUpdateStats}
-        onStartLevel={handleStartLevel}
-        onTogglePause={handleTogglePause}
-        onResetGame={handleResetGame}
-        onSkipLevel={handleSkipLevel}
-        onSetPlayerCount={handleSetPlayerCount}
-        onOpenMenu={handleOpenMenu}
-        onToggleMute={handleToggleMute}
-        onUpgradeHealth={handleUpgradeHealth}
-        onUpgradeFireRate={handleUpgradeFireRate}
-        onUpgradeDamage={handleUpgradeDamage}
-        onUpgradeSpeed={handleUpgradeSpeed}
-        onNextLevelFromCave={handleNextLevelFromCave}
-        onUnlockBabyDragon={handleUnlockBabyDragon}
-      />
+    <div id="app-root-container" className="relative w-screen h-screen overflow-hidden bg-slate-950">
+      {/* Mode Switcher & Global Sound Toggle in Top Corner */}
+      <div className="absolute top-3 right-3 z-40 flex items-center gap-2">
+        <div className="flex items-center gap-1.5 bg-slate-900/90 border border-slate-700/80 p-1 rounded-xl shadow-lg backdrop-blur-sm text-xs">
+          <button
+            onClick={() => setGameMode("3d_eragon")}
+            className={`px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition ${
+              gameMode === "3d_eragon"
+                ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/30"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+            <span>3D Eragon RPG</span>
+          </button>
+
+          <button
+            onClick={() => setGameMode("2d_arcade")}
+            className={`px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition ${
+              gameMode === "2d_arcade"
+                ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/30"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            <Gamepad2 className="w-3.5 h-3.5 text-indigo-300" />
+            <span>2D Arkáda</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Main Game Screen */}
+      {gameMode === "3d_eragon" ? (
+        <EragonGameView />
+      ) : (
+        <EditorHUD
+          containerRef={containerRef}
+          gameState={gameState}
+          onSelectDragon={handleSelectDragon}
+          onUpdateStats={handleUpdateStats}
+          onStartLevel={handleStartLevel}
+          onTogglePause={handleTogglePause}
+          onResetGame={handleResetGame}
+          onSkipLevel={handleSkipLevel}
+          onSetPlayerCount={handleSetPlayerCount}
+          onOpenMenu={handleOpenMenu}
+          onToggleMute={handleToggleMute}
+          onUpgradeHealth={handleUpgradeHealth}
+          onUpgradeFireRate={handleUpgradeFireRate}
+          onUpgradeDamage={handleUpgradeDamage}
+          onUpgradeSpeed={handleUpgradeSpeed}
+          onNextLevelFromCave={handleNextLevelFromCave}
+          onUnlockBabyDragon={handleUnlockBabyDragon}
+        />
+      )}
     </div>
   );
 }
-

@@ -65,69 +65,79 @@ export class ParallaxBackground {
         this.drawRockyPeaks(this.farLayer, 180, 0x1f2937, 0x111827); // Deep grey peaks
         this.drawRockyPeaks(this.midLayer, 260, 0x374151, 0x1f2937);  // Mid grey-blue peaks
         this.drawRockyPeaks(this.nearLayer, 360, 0x4b5563, 0x374151, true); // Foothills with storm fog
-        
-        // Speeds
-        this.farSpeed = 0.25;
-        this.midSpeed = 0.7;
-        this.nearSpeed = 1.4;
+        this.farSpeed = 0.25; this.midSpeed = 0.7; this.nearSpeed = 1.4;
         break;
 
       case 2: // Bojli Desert
         this.drawDesertSky();
-        this.drawDunes(this.farLayer, 220, 0xd97706, 0xb45309); // Dark golden dunes
-        this.drawDunes(this.midLayer, 290, 0xf59e0b, 0xd97706);  // Warm golden dunes
-        this.drawDunes(this.nearLayer, 380, 0xfbbf24, 0xf59e0b); // Bright sandy dunes with ground line
-        
-        // Speeds
-        this.farSpeed = 0.35;
-        this.midSpeed = 0.9;
-        this.nearSpeed = 1.8;
+        this.drawDunes(this.farLayer, 220, 0xd97706, 0xb45309);
+        this.drawDunes(this.midLayer, 290, 0xf59e0b, 0xd97706);
+        this.drawDunes(this.nearLayer, 380, 0xfbbf24, 0xf59e0b);
+        this.farSpeed = 0.35; this.midSpeed = 0.9; this.nearSpeed = 1.8;
         break;
 
       case 3: // Massive Forest
         this.drawForestSky();
-        this.drawForestSilhouettes(this.farLayer, 150, 0x064e3b, 0x022c22, 1);  // Distant thin trees
-        this.drawForestSilhouettes(this.midLayer, 230, 0x065f46, 0x064e3b, 2);  // Medium dense trees & mossy overhangs
-        this.drawForestSilhouettes(this.nearLayer, 340, 0x047857, 0x065f46, 3); // Closer trees & undergrowth ground line
-        
-        // Speeds
-        this.farSpeed = 0.45;
-        this.midSpeed = 1.1;
-        this.nearSpeed = 2.2;
+        this.drawForestSilhouettes(this.farLayer, 150, 0x064e3b, 0x022c22, 1);
+        this.drawForestSilhouettes(this.midLayer, 230, 0x065f46, 0x064e3b, 2);
+        this.drawForestSilhouettes(this.nearLayer, 340, 0x047857, 0x065f46, 3);
+        this.farSpeed = 0.45; this.midSpeed = 1.1; this.nearSpeed = 2.2;
         break;
 
-      case 4: // Ocean Depths
+      case 4: // Frozen Glacier
+        this.drawStormySky();
+        this.drawRockyPeaks(this.farLayer, 180, 0x0284c7, 0x0369a1);
+        this.drawRockyPeaks(this.midLayer, 260, 0x38bdf8, 0x0284c7);
+        this.drawRockyPeaks(this.nearLayer, 360, 0xbae6fd, 0x38bdf8, true);
+        this.farSpeed = 0.3; this.midSpeed = 0.8; this.nearSpeed = 1.6;
+        break;
+
+      case 5: // Lightning Sky
+        this.drawStormySky();
+        this.drawDunes(this.farLayer, 200, 0x1e3a8a, 0x1e1b4b);
+        this.drawDunes(this.midLayer, 270, 0x3b82f6, 0x1e3a8a);
+        this.drawDunes(this.nearLayer, 360, 0x60a5fa, 0x3b82f6);
+        this.farSpeed = 0.4; this.midSpeed = 1.0; this.nearSpeed = 2.0;
+        break;
+
+      case 6: // Ocean Depths
         this.drawOceanSky();
-        this.drawOceanReefSilhouettes(this.farLayer, 180, 0x1e1b4b, 0x0f172a, 1);  // Deep abyssal trench spires
-        this.drawOceanReefSilhouettes(this.midLayer, 260, 0x0369a1, 0x075985, 2);  // Coral reefs & kelp forests
-        this.drawOceanReefSilhouettes(this.nearLayer, 360, 0x0284c7, 0x0369a1, 3); // Closer seabed & glowing anemones
-        
-        // Speeds
-        this.farSpeed = 0.3;
-        this.midSpeed = 0.8;
-        this.nearSpeed = 1.6;
+        this.drawOceanReefSilhouettes(this.farLayer, 180, 0x1e1b4b, 0x0f172a, 1);
+        this.drawOceanReefSilhouettes(this.midLayer, 260, 0x0369a1, 0x075985, 2);
+        this.drawOceanReefSilhouettes(this.nearLayer, 360, 0x0284c7, 0x0369a1, 3);
+        this.farSpeed = 0.3; this.midSpeed = 0.8; this.nearSpeed = 1.6;
         break;
 
-      case 5: // Lava Realm
+      case 7: // Crystal Caves
+        this.drawDarkSky();
+        this.drawDarkSpires(this.farLayer, 190, 0x581c87, 0x3b0764, 1);
+        this.drawDarkSpires(this.midLayer, 270, 0x7e22ce, 0x581c87, 2);
+        this.drawDarkSpires(this.nearLayer, 360, 0xa855f7, 0x7e22ce, 3);
+        this.farSpeed = 0.35; this.midSpeed = 0.9; this.nearSpeed = 1.8;
+        break;
+
+      case 8: // Mechanical City
+        this.drawDesertSky();
+        this.drawRockyPeaks(this.farLayer, 190, 0x78350f, 0x451a03);
+        this.drawRockyPeaks(this.midLayer, 270, 0xb45309, 0x78350f);
+        this.drawRockyPeaks(this.nearLayer, 360, 0xd97706, 0xb45309, true);
+        this.farSpeed = 0.4; this.midSpeed = 1.0; this.nearSpeed = 2.0;
+        break;
+
+      case 9: // Lava Realm (Shifted to level 9)
         this.drawLavaSky();
         this.drawLavaMountains(this.farLayer, 200, 0x450a0a, 0x180202, 1);
         this.drawLavaMountains(this.midLayer, 280, 0x7f1d1d, 0x450a0a, 2);
         this.drawLavaMountains(this.nearLayer, 370, 0x991b1b, 0x7f1d1d, 3);
-        
-        this.farSpeed = 0.35;
-        this.midSpeed = 0.9;
-        this.nearSpeed = 1.8;
+        this.farSpeed = 0.35; this.midSpeed = 0.9; this.nearSpeed = 1.8;
         break;
 
-      case 6: // Dark Realm
+      case 10: // Dark Realm (Shifted to level 10)
         this.drawDarkSky();
         this.drawDarkSpires(this.farLayer, 190, 0x1e1b4b, 0x090514, 1);
         this.drawDarkSpires(this.midLayer, 270, 0x31104b, 0x1e1b4b, 2);
         this.drawDarkSpires(this.nearLayer, 360, 0x581c87, 0x31104b, 3);
-        
-        this.farSpeed = 0.4;
-        this.midSpeed = 1.0;
-        this.nearSpeed = 2.0;
+        this.farSpeed = 0.4; this.midSpeed = 1.0; this.nearSpeed = 2.0;
         break;
     }
   }

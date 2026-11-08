@@ -54,6 +54,9 @@ export class GameEngine {
   private shakeTime: number = 0;
   private shakeIntensity: number = 0;
 
+  // Gamepad button debounce
+  private lastPauseButtonPressed: boolean = false;
+
   constructor(
     containerElement: HTMLDivElement,
     initialConfig: DragonConfig,
@@ -366,7 +369,7 @@ export class GameEngine {
   }
 
   public nextLevelFromCave() {
-    if (this.state.currentLevel < 6) {
+    if (this.state.currentLevel < 10) {
       this.startLevel(this.state.currentLevel + 1);
     } else {
       this.state.status = "victory";
@@ -467,7 +470,7 @@ export class GameEngine {
   }
 
   public skipLevel() {
-    if (this.state.currentLevel < 6) {
+    if (this.state.currentLevel < 10) {
       this.startLevel(this.state.currentLevel + 1);
     } else {
       this.state.status = "victory";
@@ -582,6 +585,16 @@ export class GameEngine {
       // 4. Gamepad polling
       const gamepads = typeof navigator !== "undefined" && navigator.getGamepads ? navigator.getGamepads() : [];
 
+      // Check Start/Select button to toggle pause on any connected gamepad
+      const activeGps = Array.from(gamepads).filter((g): g is Gamepad => g !== null && g.connected);
+      const isStartPressed = activeGps.some((g) => g.buttons[9]?.pressed || g.buttons[8]?.pressed);
+      if (isStartPressed && !this.lastPauseButtonPressed) {
+        if (this.state.status === "playing") {
+          this.togglePause();
+        }
+      }
+      this.lastPauseButtonPressed = isStartPressed;
+
       // Update inputs & movement for each active player
       for (let pIdx = 0; pIdx < this.playerDragons.length; pIdx++) {
         const dragon = this.playerDragons[pIdx];
@@ -633,12 +646,12 @@ export class GameEngine {
           if (this.keys["Numpad3"] || this.keys["Numpad9"] || this.keys["KeyM"] || this.keys["m"] || this.keys["M"]) specialPressed = true;
         }
 
-        // Check Gamepad inputs for this player
-        const gp = gamepads[pIdx];
+        // Check Gamepad inputs for this player (or fallback to any connected gamepad for Player 1)
+        const gp = gamepads[pIdx] || (pIdx === 0 && this.playerDragons.length === 1 ? activeGps[0] : null);
         if (gp && gp.connected) {
-          // Analog Stick or D-Pad (0.35 deadzone threshold to avoid drift freeze)
-          if (Math.abs(gp.axes[0]) > 0.35) dx = gp.axes[0];
-          if (Math.abs(gp.axes[1]) > 0.35) dy = gp.axes[1];
+          // Analog Stick or D-Pad (0.25 deadzone threshold)
+          if (Math.abs(gp.axes[0]) > 0.25) dx = gp.axes[0];
+          if (Math.abs(gp.axes[1]) > 0.25) dy = gp.axes[1];
 
           if (gp.buttons[12]?.pressed) dy = -1; // D-Pad Up
           if (gp.buttons[13]?.pressed) dy = 1;  // D-Pad Down
@@ -888,12 +901,55 @@ export class GameEngine {
       }
     }
     else if (level === 4) {
-      // Level 4 (Mořské hlubiny - Ocean Depths): Bioluminescent jellies, hungry piranhas, electric serpents, then Kraken Boss
+      // Level 4 (Zmrzlý Ledovec): Ice harpies, then Ice Titan Boss
+      if (this.state.levelProgress < 80) {
+        this.enemySpawnTimer -= dt * 16.67;
+        if (this.enemySpawnTimer <= 0) {
+          this.enemySpawnTimer = 1500 + Math.random() * 800;
+          const spawnY = 50 + Math.random() * 340;
+          const enemy = new Enemy("ice_harpy", 850, spawnY);
+          this.enemies.push(enemy);
+          this.gameStage.addChild(enemy.container);
+        }
+      } else if (!this.bossSpawned) {
+        this.bossSpawned = true;
+        const boss = new Enemy("ice_titan_boss", 850, 210);
+        this.enemies.push(boss);
+        this.bossRef = boss;
+        this.gameStage.addChild(boss.container);
+        this.state.bossHealth = boss.health;
+        this.state.bossMaxHealth = boss.maxHealth;
+        this.triggerStateChange();
+      }
+    }
+    else if (level === 5) {
+      // Level 5 (Blesková Obloha): Storm Birds, then Storm Sky Boss
+      if (this.state.levelProgress < 80) {
+        this.enemySpawnTimer -= dt * 16.67;
+        if (this.enemySpawnTimer <= 0) {
+          this.enemySpawnTimer = 1400 + Math.random() * 800;
+          const spawnY = 50 + Math.random() * 340;
+          const enemy = new Enemy("storm_bird", 850, spawnY);
+          this.enemies.push(enemy);
+          this.gameStage.addChild(enemy.container);
+        }
+      } else if (!this.bossSpawned) {
+        this.bossSpawned = true;
+        const boss = new Enemy("storm_sky_boss", 850, 210);
+        this.enemies.push(boss);
+        this.bossRef = boss;
+        this.gameStage.addChild(boss.container);
+        this.state.bossHealth = boss.health;
+        this.state.bossMaxHealth = boss.maxHealth;
+        this.triggerStateChange();
+      }
+    }
+    else if (level === 6) {
+      // Level 6 (Mořské hlubiny): Bioluminescent jellies, hungry piranhas, electric serpents, then Kraken Boss
       if (this.state.levelProgress < 80) {
         this.enemySpawnTimer -= dt * 16.67;
         if (this.enemySpawnTimer <= 0) {
           this.enemySpawnTimer = 1400 + Math.random() * 900;
-          
           const rand = Math.random();
           let type: EnemyType = "sea_jelly";
           const spawnY = 50 + Math.random() * 340;
@@ -911,24 +967,66 @@ export class GameEngine {
           this.gameStage.addChild(enemy.container);
         }
       } else if (!this.bossSpawned) {
-        // Spawn Ancient Ocean Kraken Boss!
         this.bossSpawned = true;
         const krakenBoss = new Enemy("sea_kraken_boss", 850, 220);
         this.enemies.push(krakenBoss);
         this.bossRef = krakenBoss;
         this.gameStage.addChild(krakenBoss.container);
-
         this.state.bossHealth = krakenBoss.health;
         this.state.bossMaxHealth = krakenBoss.maxHealth;
         this.triggerStateChange();
       }
     }
-    else if (level === 5) {
-      // Level 5 (Lávová Říše): Evil Lava Dragons guarding Lava Ninja Stickman Boss
+    else if (level === 7) {
+      // Level 7 (Krystalové Jeskyně): Crystal Bats, then Crystal Dragon Boss
       if (this.state.levelProgress < 80) {
         this.enemySpawnTimer -= dt * 16.67;
         if (this.enemySpawnTimer <= 0) {
-          this.enemySpawnTimer = 1300 + Math.random() * 800;
+          this.enemySpawnTimer = 1350 + Math.random() * 750;
+          const spawnY = 50 + Math.random() * 340;
+          const enemy = new Enemy("crystal_bat", 850, spawnY);
+          this.enemies.push(enemy);
+          this.gameStage.addChild(enemy.container);
+        }
+      } else if (!this.bossSpawned) {
+        this.bossSpawned = true;
+        const boss = new Enemy("crystal_dragon_boss", 850, 220);
+        this.enemies.push(boss);
+        this.bossRef = boss;
+        this.gameStage.addChild(boss.container);
+        this.state.bossHealth = boss.health;
+        this.state.bossMaxHealth = boss.maxHealth;
+        this.triggerStateChange();
+      }
+    }
+    else if (level === 8) {
+      // Level 8 (Mechanické Město): Steam Drones, then Steam Mech Boss
+      if (this.state.levelProgress < 80) {
+        this.enemySpawnTimer -= dt * 16.67;
+        if (this.enemySpawnTimer <= 0) {
+          this.enemySpawnTimer = 1300 + Math.random() * 700;
+          const spawnY = 50 + Math.random() * 340;
+          const enemy = new Enemy("steam_drone", 850, spawnY);
+          this.enemies.push(enemy);
+          this.gameStage.addChild(enemy.container);
+        }
+      } else if (!this.bossSpawned) {
+        this.bossSpawned = true;
+        const boss = new Enemy("steam_mech_boss", 850, 220);
+        this.enemies.push(boss);
+        this.bossRef = boss;
+        this.gameStage.addChild(boss.container);
+        this.state.bossHealth = boss.health;
+        this.state.bossMaxHealth = boss.maxHealth;
+        this.triggerStateChange();
+      }
+    }
+    else if (level === 9) {
+      // Level 9 (Lávová Říše): Evil Lava Dragons guarding Lava Ninja Stickman Boss
+      if (this.state.levelProgress < 80) {
+        this.enemySpawnTimer -= dt * 16.67;
+        if (this.enemySpawnTimer <= 0) {
+          this.enemySpawnTimer = 1250 + Math.random() * 750;
           const type: EnemyType = Math.random() > 0.4 ? "lava_dragon_enemy" : "dragon_monster";
           const spawnY = 60 + Math.random() * 320;
 
@@ -937,24 +1035,22 @@ export class GameEngine {
           this.gameStage.addChild(enemy.container);
         }
       } else if (!this.bossSpawned) {
-        // Spawn Lava Ninja Stickman Boss!
         this.bossSpawned = true;
         const lavaBoss = new Enemy("lava_ninja_boss", 850, 210);
         this.enemies.push(lavaBoss);
         this.bossRef = lavaBoss;
         this.gameStage.addChild(lavaBoss.container);
-
         this.state.bossHealth = lavaBoss.health;
         this.state.bossMaxHealth = lavaBoss.maxHealth;
         this.triggerStateChange();
       }
     }
-    else if (level === 6) {
-      // Level 6 (Temná Říše): Dark Monsters protecting Dark Ninja Stickman Final Boss
+    else if (level === 10) {
+      // Level 10 (Temná Říše): Dark Monsters protecting Dark Ninja Stickman Final Boss
       if (this.state.levelProgress < 80) {
         this.enemySpawnTimer -= dt * 16.67;
         if (this.enemySpawnTimer <= 0) {
-          this.enemySpawnTimer = 1200 + Math.random() * 700;
+          this.enemySpawnTimer = 1100 + Math.random() * 650;
           const type: EnemyType = "dark_monster";
           const spawnY = 50 + Math.random() * 340;
 
@@ -963,13 +1059,11 @@ export class GameEngine {
           this.gameStage.addChild(enemy.container);
         }
       } else if (!this.bossSpawned) {
-        // Spawn Dark Ninja Stickman Final Boss!
         this.bossSpawned = true;
         const darkBoss = new Enemy("dark_ninja_boss", 850, 220);
         this.enemies.push(darkBoss);
         this.bossRef = darkBoss;
         this.gameStage.addChild(darkBoss.container);
-
         this.state.bossHealth = darkBoss.health;
         this.state.bossMaxHealth = darkBoss.maxHealth;
         this.triggerStateChange();
@@ -1812,44 +1906,76 @@ export class GameEngine {
       }
     }
     else if (level === 4) {
-      // Level 4: Extended ocean flight distance up to 80% (45% longer), then Kraken Boss required
       if (this.state.levelProgress < 80) {
         this.state.levelProgress += dt * 0.0151;
-        if (this.state.levelProgress >= 80) {
-          this.state.levelProgress = 80;
-        }
+        if (this.state.levelProgress >= 80) this.state.levelProgress = 80;
       } else {
-        // Boss fight phase!
-        if (this.bossSpawned && !this.bossRef && this.enemies.filter(e => e.type === "sea_kraken_boss").length === 0) {
+        if (this.bossSpawned && !this.bossRef && this.enemies.filter(e => e.type === "ice_titan_boss").length === 0) {
           this.state.levelProgress = 100;
           this.completeLevel();
         }
       }
     }
     else if (level === 5) {
-      // Level 5: Lava Realm flight distance up to 80%, then Lava Ninja Boss required
       if (this.state.levelProgress < 80) {
         this.state.levelProgress += dt * 0.0151;
-        if (this.state.levelProgress >= 80) {
-          this.state.levelProgress = 80;
-        }
+        if (this.state.levelProgress >= 80) this.state.levelProgress = 80;
       } else {
-        // Boss fight phase!
-        if (this.bossSpawned && !this.bossRef && this.enemies.filter(e => e.type === "lava_ninja_boss").length === 0) {
+        if (this.bossSpawned && !this.bossRef && this.enemies.filter(e => e.type === "storm_sky_boss").length === 0) {
           this.state.levelProgress = 100;
           this.completeLevel();
         }
       }
     }
     else if (level === 6) {
-      // Level 6: Dark Realm flight distance up to 80%, then Dark Ninja Stickman Final Boss required
       if (this.state.levelProgress < 80) {
         this.state.levelProgress += dt * 0.0151;
-        if (this.state.levelProgress >= 80) {
-          this.state.levelProgress = 80;
-        }
+        if (this.state.levelProgress >= 80) this.state.levelProgress = 80;
       } else {
-        // Final Boss fight phase!
+        if (this.bossSpawned && !this.bossRef && this.enemies.filter(e => e.type === "sea_kraken_boss").length === 0) {
+          this.state.levelProgress = 100;
+          this.completeLevel();
+        }
+      }
+    }
+    else if (level === 7) {
+      if (this.state.levelProgress < 80) {
+        this.state.levelProgress += dt * 0.0151;
+        if (this.state.levelProgress >= 80) this.state.levelProgress = 80;
+      } else {
+        if (this.bossSpawned && !this.bossRef && this.enemies.filter(e => e.type === "crystal_dragon_boss").length === 0) {
+          this.state.levelProgress = 100;
+          this.completeLevel();
+        }
+      }
+    }
+    else if (level === 8) {
+      if (this.state.levelProgress < 80) {
+        this.state.levelProgress += dt * 0.0151;
+        if (this.state.levelProgress >= 80) this.state.levelProgress = 80;
+      } else {
+        if (this.bossSpawned && !this.bossRef && this.enemies.filter(e => e.type === "steam_mech_boss").length === 0) {
+          this.state.levelProgress = 100;
+          this.completeLevel();
+        }
+      }
+    }
+    else if (level === 9) {
+      if (this.state.levelProgress < 80) {
+        this.state.levelProgress += dt * 0.0151;
+        if (this.state.levelProgress >= 80) this.state.levelProgress = 80;
+      } else {
+        if (this.bossSpawned && !this.bossRef && this.enemies.filter(e => e.type === "lava_ninja_boss").length === 0) {
+          this.state.levelProgress = 100;
+          this.completeLevel();
+        }
+      }
+    }
+    else if (level === 10) {
+      if (this.state.levelProgress < 80) {
+        this.state.levelProgress += dt * 0.0151;
+        if (this.state.levelProgress >= 80) this.state.levelProgress = 80;
+      } else {
         if (this.bossSpawned && !this.bossRef && this.enemies.filter(e => e.type === "dark_ninja_boss").length === 0) {
           this.state.levelProgress = 100;
           this.completeLevel();
@@ -1864,8 +1990,8 @@ export class GameEngine {
     this.isRunning = false;
     this.triggerShake(5, 30);
     
-    // Complete entire journey if level 6 (final dark realm level), otherwise enter Cave Sanctuary
-    if (this.state.currentLevel === 6) {
+    // Complete entire journey if level 10 (final dark realm level), otherwise enter Cave Sanctuary
+    if (this.state.currentLevel === 10) {
       this.state.status = "victory";
     } else {
       this.state.status = "cave_shop";
